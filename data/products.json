@@ -7,5 +7,32 @@
     "dupe_image": "https://via.placeholder.com/300",
     "link": "https://hb.afl.rakuten.co.jp/ichiba/xxxxxxxxxxxxxxxx",
     "price": 2999
-  }
+  },
+{
+  "title": "SNIDEL風ワンピ",
+  "high_brand": "SNIDEL",
+  "high_image": "https://via.placeholder.com/300",
+  "dupe_brand": "GRL",
+  "dupe_image": "https://via.placeholder.com/300",
+  "link": "https://item.rakuten.co.jp/auc-mifmif/m190225-04/",
+  "price": 2999
+},
+{
+  "title": "Darich風ニットワンピ",
+  "high_brand": "Darich",
+  "high_image": "https://via.placeholder.com/300",
+  "dupe_brand": "GRL",
+  "dupe_image": "https://via.placeholder.com/300",
+  "link": "https://item.rakuten.co.jp/sljapan1/sa8400/?iasid=07rpp_10095___3k-mnxbgxid-4c-97903da8-0eb7-4ec3-a746-41b683ef933d",
+  "price": 2999
+},
+{
+  "title": "SNIDEL風ミニスカート",
+  "high_brand": "SNIDEL",
+  "high_image": "https://via.placeholder.com/300",
+  "dupe_brand": "GRL",
+  "dupe_image": "https://via.placeholder.com/300",
+  "link": "https://item.rakuten.co.jp/sljapan1/sa7321/",
+  "price": 2999
+}
 ]
