@@ -16,5 +16,14 @@
     "dupe_image": "https://via.placeholder.com/300",
     "link": "https://item.rakuten.co.jp/sljapan1/sa8400/",
     "price": 2999
-  }
+  },
+  {
+  "title": "画像テスト",
+  "high_brand": "TEST",
+  "high_image": "https://via.placeholder.com/300",
+  "dupe_brand": "TEST",
+  "dupe_image": "https://via.placeholder.com/300",
+  "link": "https://example.com",
+  "price": 1000
+}
 ]
