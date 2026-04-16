@@ -35,24 +35,23 @@ export default function Home() {
       <div style={{ marginTop: 20 }}>
         {results.length === 0 && <p>結果なし</p>}
 
-        {results.map((item, i) => (
-          <div key={i} style={{ marginBottom: 20 }}>
-            <h3>{item.title}</h3>
+        {results.map((item, index) => (
+  <div key={index} style={{ marginBottom: "20px" }}>
+    <h2>{item.title}</h2>
 
-            {/* 👇ここが重要 */}
-            <img
-  src={item.dupe_image}
-  width="200"
-  referrerPolicy="no-referrer"
-/>
+    <img
+      src={item.dupe_image}
+      alt={item.title}
+      style={{ width: "200px" }}
+    />
 
-            <p>{item.price}円</p>
+    <br />
 
-            <a href={item.link} target="_blank">
-              楽天で見る
-            </a>
-          </div>
-        ))}
+    <a href={item.link} target="_blank">
+      楽天で見る
+    </a>
+  </div>
+))}
       </div>
     </div>
   );
