@@ -41,10 +41,10 @@ export default function Home() {
 
             {/* 👇ここが重要 */}
             <img
-              src={item.dupe_image || "https://via.placeholder.com/300"}
-              width="200"
-              style={{ border: "1px solid #ccc" }}
-            />
+  src={item.dupe_image}
+  width="200"
+  referrerPolicy="no-referrer"
+/>
 
             <p>{item.price}円</p>
 
