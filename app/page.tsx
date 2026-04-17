@@ -1,24 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image"
+
+type Product = {
+  title: string;
+  high_brand: string;
+  high_image: string;
+  dupe_brand: string;
+  dupe_image: string;
+  link: string;
+  price: number;
+};
 
 export default function Home() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [keyword, setKeyword] = useState("");
+  const [results, setResults] = useState<Product[]>([]);
 
   const handleSearch = async () => {
-    const res = await fetch("/api/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    });
+  const res = await fetch("/api/search", {
+    method: "POST",
+    body: JSON.stringify({ keyword }),
+  });
 
-    const data = await res.json();
-    console.log("検索結果:", data); // ←追加（確認用）
-    setResults(data);
-  };
+  const data = await res.json();
+  setResults(data);
+};
 
   return (
     <div style={{ padding: 20 }}>
@@ -29,6 +37,16 @@ export default function Home() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="例：ワンピ"
       />
+      <input
+  value={keyword}
+  onChange={(e) => setKeyword(e.target.value)}
+  placeholder="例：スナイデル ワンピ"
+  style={{
+    padding: "10px",
+    width: "250px",
+    marginBottom: "10px"
+  }}
+/>
 
       <button onClick={handleSearch}>検索</button>
 
@@ -39,11 +57,12 @@ export default function Home() {
   <div key={index} style={{ marginBottom: "20px" }}>
     <h2>{item.title}</h2>
 
-    <img
-      src={item.dupe_image}
-      alt={item.title}
-      style={{ width: "200px" }}
-    />
+<Image
+  src={item.dupe_image}
+  alt={item.title}
+  width={300}
+  height={300}
+/>
 
     <br />
 
