@@ -16,18 +16,19 @@ type Product = {
 export default function Home() {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
+    setLoading(true);
+
     const res = await fetch("/api/search", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ keyword }),
     });
 
     const data = await res.json();
     setResults(data);
+    setLoading(false);
   };
 
   return (
@@ -35,104 +36,117 @@ export default function Home() {
       style={{
         padding: "20px",
         fontFamily: "sans-serif",
-        background: "#fafafa",
+        background: "#f8f6ff",
         minHeight: "100vh",
       }}
     >
-      <h1 style={{ fontSize: "24px", marginBottom: "10px" }}>
-        💖 LOOK MATCH
+      {/* タイトル */}
+      <h1 style={{ textAlign: "center", color: "#7b5cff" }}>
+        LookMatch 💜
       </h1>
-      <p style={{ marginBottom: "20px" }}>
-        ハイブランド風 → プチプラ検索
-      </p>
 
-      {/* 検索欄 */}
-      <input
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        placeholder="例：スナイデル ワンピ"
-        style={{
-          padding: "10px",
-          width: "250px",
-          marginRight: "10px",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-        }}
-      />
+      {/* 検索ボックス */}
+      <div style={{ textAlign: "center", marginBottom: "20px" }}>
+        <input
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder="例：SNIDEL ワンピ"
+          style={{
+            padding: "12px",
+            width: "70%",
+            borderRadius: "20px",
+            border: "1px solid #ccc",
+          }}
+        />
 
-      <button
-        onClick={handleSearch}
-        style={{
-          background: "#ff4d6d",
-          color: "white",
-          padding: "10px 20px",
-          borderRadius: "8px",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        検索
-      </button>
+        <br />
 
-      {/* ワンタップ検索 */}
-      <div style={{ marginTop: "15px" }}>
-        <button onClick={() => setKeyword("ワンピ")}>ワンピ</button>
-        <button onClick={() => setKeyword("ニット")} style={{ marginLeft: 10 }}>
-          ニット
-        </button>
         <button
-          onClick={() => setKeyword("スカート")}
-          style={{ marginLeft: 10 }}
+          onClick={handleSearch}
+          style={{
+            marginTop: "10px",
+            padding: "10px 20px",
+            borderRadius: "20px",
+            border: "none",
+            background: "#7b5cff",
+            color: "white",
+            cursor: "pointer",
+          }}
         >
-          スカート
+          検索
+          <input
+  type="file"
+  accept="image/*"
+  onChange={() => {
+    alert("スクショ検索は準備中（仮）");
+  }}
+  style={{ marginTop: "10px" }}
+/>
         </button>
       </div>
 
+      {/* ローディング */}
+      {loading && <p style={{ textAlign: "center" }}>検索中...</p>}
+
       {/* 結果 */}
-      <div style={{ marginTop: "30px" }}>
-        {results.length === 0 && <p>結果なし</p>}
+      <div>
+        {results.length === 0 && !loading && (
+          <p style={{ textAlign: "center" }}>結果なし</p>
+        )}
 
         {results.map((item, index) => (
           <div
             key={index}
             style={{
-              border: "1px solid #eee",
-              borderRadius: "16px",
-              padding: "15px",
-              marginBottom: "20px",
               background: "white",
+              padding: "15px",
+              borderRadius: "15px",
+              marginBottom: "20px",
               boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
             }}
           >
             <h2>{item.title}</h2>
 
-            <Image
-              src={item.dupe_image}
-              alt={item.title}
-              width={300}
-              height={300}
-              style={{ borderRadius: "10px" }}
-            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              {/* 高級 */}
+              <div>
+                <p>{item.high_brand}</p>
+                <Image
+                  src={item.high_image}
+                  alt=""
+                  width={150}
+                  height={150}
+                />
+              </div>
 
-            <p style={{ marginTop: "10px" }}>
-              💰 {item.price}円
-            </p>
+              {/* プチプラ */}
+              <div>
+                <p>{item.dupe_brand}</p>
+                <Image
+                  src={item.dupe_image}
+                  alt=""
+                  width={150}
+                  height={150}
+                />
+              </div>
+            </div>
 
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                marginTop: "10px",
-                background: "#ff4d6d",
-                color: "white",
-                padding: "10px 15px",
-                borderRadius: "8px",
-                textDecoration: "none",
-              }}
-            >
-              💖 楽天で見る
+            <p>¥{item.price}</p>
+
+            <a href={item.link} target="_blank">
+              <button
+                style={{
+                  marginTop: "10px",
+                  padding: "10px",
+                  borderRadius: "10px",
+                  background: "#ff6b81",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                楽天で見る
+              </button>
             </a>
           </div>
         ))}
