@@ -18,6 +18,7 @@ export default function Home() {
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
+const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // ✅ 初期ロード
   useEffect(() => {
@@ -56,28 +57,30 @@ export default function Home() {
 
   // ✅ スクショ検索
   const handleImageSearch = async (file: File) => {
-    setLoading(true);
+  setLoading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    const res = await fetch("/api/image-search", {
-      method: "POST",
-      body: formData,
-    });
+  const res = await fetch("/api/image-search", {
+    method: "POST",
+    body: formData,
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    const searchRes = await fetch("/api/search", {
-      method: "POST",
-      body: JSON.stringify({ keyword: data.keyword }),
-    });
+  console.log("AI keyword:", data.keyword); // ←これ重要
 
-    const results = await searchRes.json();
-    setResults(results);
+  const searchRes = await fetch("/api/search", {
+    method: "POST",
+    body: JSON.stringify({ keyword: data.keyword }),
+  });
 
-    setLoading(false);
-  };
+  const results = await searchRes.json();
+
+  setResults(results);
+  setLoading(false);
+};
 
   return (
     <div
@@ -128,16 +131,27 @@ export default function Home() {
 
         {/* ✅ スクショアップ */}
         <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            if (e.target.files?.[0]) {
-              handleImageSearch(e.target.files[0]);
-            }
-          }}
-          style={{ marginTop: "10px" }}
-        />
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    if (e.target.files?.[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  }}
+/>
       </div>
+
+      <button
+  onClick={() => {
+    if (selectedFile) {
+      handleImageSearch(selectedFile);
+    } else {
+      alert("画像を選択してね");
+    }
+  }}
+>
+  画像で検索
+</button>
 
       {/* ローディング */}
       {loading && <p style={{ textAlign: "center" }}>検索中...</p>}
