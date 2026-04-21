@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 type Product = {
@@ -17,7 +17,29 @@ export default function Home() {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
+  // ✅ 初期ロード
+  useEffect(() => {
+    const saved = localStorage.getItem("fav");
+    if (saved) setFavorites(JSON.parse(saved));
+  }, []);
+
+  // ✅ お気に入り
+  const toggleFavorite = (index: number) => {
+    let updated;
+
+    if (favorites.includes(index)) {
+      updated = favorites.filter((i) => i !== index);
+    } else {
+      updated = [...favorites, index];
+    }
+
+    setFavorites(updated);
+    localStorage.setItem("fav", JSON.stringify(updated));
+  };
+
+  // ✅ テキスト検索
   const handleSearch = async () => {
     setLoading(true);
 
@@ -28,6 +50,32 @@ export default function Home() {
 
     const data = await res.json();
     setResults(data);
+
+    setLoading(false);
+  };
+
+  // ✅ スクショ検索
+  const handleImageSearch = async (file: File) => {
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/image-search", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    const searchRes = await fetch("/api/search", {
+      method: "POST",
+      body: JSON.stringify({ keyword: data.keyword }),
+    });
+
+    const results = await searchRes.json();
+    setResults(results);
+
     setLoading(false);
   };
 
@@ -45,7 +93,9 @@ export default function Home() {
         LookMatch 💜
       </h1>
 
-      {/* 検索ボックス */}
+      <h2 style={{ textAlign: "center" }}>📸 スクショで探す</h2>
+
+      {/* 検索 */}
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
         <input
           value={keyword}
@@ -74,15 +124,19 @@ export default function Home() {
           }}
         >
           検索
-          <input
-  type="file"
-  accept="image/*"
-  onChange={() => {
-    alert("スクショ検索は準備中（仮）");
-  }}
-  style={{ marginTop: "10px" }}
-/>
         </button>
+
+        {/* ✅ スクショアップ */}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            if (e.target.files?.[0]) {
+              handleImageSearch(e.target.files[0]);
+            }
+          }}
+          style={{ marginTop: "10px" }}
+        />
       </div>
 
       {/* ローディング */}
@@ -98,55 +152,54 @@ export default function Home() {
           <div
             key={index}
             style={{
-              background: "white",
+              background: "#fff",
+              borderRadius: "20px",
               padding: "15px",
-              borderRadius: "15px",
               marginBottom: "20px",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
             }}
           >
-            <h2>{item.title}</h2>
+            <Image
+              src={item.dupe_image}
+              alt={item.title}
+              width={300}
+              height={300}
+              style={{ borderRadius: "12px" }}
+            />
 
-            <div style={{ display: "flex", gap: "10px" }}>
-              {/* 高級 */}
-              <div>
-                <p>{item.high_brand}</p>
-                <Image
-                  src={item.high_image}
-                  alt=""
-                  width={150}
-                  height={150}
-                />
-              </div>
+            <button
+              onClick={() => toggleFavorite(index)}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
+              }}
+            >
+              {favorites.includes(index) ? "❤️" : "🤍"}
+            </button>
 
-              {/* プチプラ */}
-              <div>
-                <p>{item.dupe_brand}</p>
-                <Image
-                  src={item.dupe_image}
-                  alt=""
-                  width={150}
-                  height={150}
-                />
-              </div>
-            </div>
+            <h3>{item.title}</h3>
 
-            <p>¥{item.price}</p>
+            <p style={{ color: "#888" }}>
+              {item.high_brand} → {item.dupe_brand}
+            </p>
 
-            <a href={item.link} target="_blank">
-              <button
-                style={{
-                  marginTop: "10px",
-                  padding: "10px",
-                  borderRadius: "10px",
-                  background: "#ff6b81",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                楽天で見る
-              </button>
+            <p style={{ fontWeight: "bold" }}>¥{item.price}</p>
+
+            <a
+              href={item.link}
+              target="_blank"
+              style={{
+                display: "inline-block",
+                background: "#c084fc",
+                color: "#fff",
+                padding: "10px 15px",
+                borderRadius: "10px",
+                marginTop: "10px",
+              }}
+            >
+              購入する
             </a>
           </div>
         ))}
