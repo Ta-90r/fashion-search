@@ -42,18 +42,30 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // ✅ テキスト検索
   const handleSearch = async () => {
-    setLoading(true);
+  setLoading(true);
 
+  try {
     const res = await fetch("/api/search", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ keyword }),
     });
 
-    const data = await res.json();
-    setResults(data);
+    console.log("res:", res);
 
-    setLoading(false);
-  };
+    const data = await res.json();
+
+    console.log("data:", data);
+
+    setResults(data);
+  } catch (e) {
+    console.error("検索エラー:", e);
+  }
+
+  setLoading(false);
+};
 
   // ✅ スクショ検索
   const handleImageSearch = async (file: File) => {
@@ -62,11 +74,13 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch("/api/image-search", {
-    method: "POST",
-    body: formData,
-  });
-
+  const res = await fetch("/api/search", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ keyword }),
+});
   const data = await res.json();
 
   console.log("AI keyword:", data.keyword); // ←これ重要
