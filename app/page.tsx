@@ -42,58 +42,58 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // ✅ テキスト検索
   const handleSearch = async () => {
-  setLoading(true);
-
   try {
+    setLoading(true);
+
     const res = await fetch("/api/search", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ keyword }),
     });
 
-    console.log("res:", res);
+    if (!res.ok) throw new Error("API error");
 
     const data = await res.json();
-
-    console.log("data:", data);
-
     setResults(data);
   } catch (e) {
-    console.error("検索エラー:", e);
+    console.error(e);
+    alert("検索失敗した");
+  } finally {
+    setLoading(false);
   }
-
-  setLoading(false);
 };
 
   // ✅ スクショ検索
   const handleImageSearch = async (file: File) => {
-  setLoading(true);
+  try {
+    setLoading(true);
 
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const res = await fetch("/api/search", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ keyword }),
-});
-  const data = await res.json();
+    const res = await fetch("/api/image-search", {
+      method: "POST",
+      body: formData,
+    });
 
-  console.log("AI keyword:", data.keyword); // ←これ重要
+    if (!res.ok) throw new Error("image api error");
 
-  const searchRes = await fetch("/api/search", {
-    method: "POST",
-    body: JSON.stringify({ keyword: data.keyword }),
-  });
+    const data = await res.json();
 
-  const results = await searchRes.json();
+    const searchRes = await fetch("/api/search", {
+      method: "POST",
+      body: JSON.stringify({ keyword: data.keyword }),
+    });
 
-  setResults(results);
-  setLoading(false);
+    if (!searchRes.ok) throw new Error("search api error");
+
+    const results = await searchRes.json();
+    setResults(results);
+  } catch (e) {
+    console.error(e);
+    alert("画像検索失敗");
+  } finally {
+    setLoading(false);
+  }
 };
 
   return (
