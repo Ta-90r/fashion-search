@@ -18,83 +18,91 @@ export default function Home() {
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
-const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // ✅ 初期ロード
+  // 初期ロード（お気に入り）
   useEffect(() => {
     const saved = localStorage.getItem("fav");
     if (saved) setFavorites(JSON.parse(saved));
   }, []);
 
-  // ✅ お気に入り
+  // お気に入り切り替え
   const toggleFavorite = (index: number) => {
     let updated;
-
     if (favorites.includes(index)) {
       updated = favorites.filter((i) => i !== index);
     } else {
       updated = [...favorites, index];
     }
-
     setFavorites(updated);
     localStorage.setItem("fav", JSON.stringify(updated));
   };
 
-  // ✅ テキスト検索
+  // 🔍 テキスト検索
   const handleSearch = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const res = await fetch("/api/search", {
-      method: "POST",
-      body: JSON.stringify({ keyword }),
-    });
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ keyword }),
+      });
 
-    if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      setResults(data);
+    } catch (error) {
+      console.error("検索エラー:", error);
+      alert("検索失敗");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const data = await res.json();
-    setResults(data);
-  } catch (e) {
-    console.error(e);
-    alert("検索失敗した");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // ✅ スクショ検索
+  // 📸 画像検索（仮）
   const handleImageSearch = async (file: File) => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const res = await fetch("/api/image-search", {
-      method: "POST",
-      body: formData,
-    });
+      const res = await fetch("/api/image-search", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!res.ok) throw new Error("image api error");
+      const data = await res.json();
 
-    const data = await res.json();
+      // 👉 ここで検索に流す
+      const searchRes = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ keyword: data.keyword }),
+      });
 
-    const searchRes = await fetch("/api/search", {
-      method: "POST",
-      body: JSON.stringify({ keyword: data.keyword }),
-    });
+      const results = await searchRes.json();
+      setResults(results);
+    } catch (error) {
+      console.error("画像検索エラー:", error);
+      alert("画像検索失敗");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (!searchRes.ok) throw new Error("search api error");
-
-    const results = await searchRes.json();
-    setResults(results);
-  } catch (e) {
-    console.error(e);
-    alert("画像検索失敗");
-  } finally {
-    setLoading(false);
-  }
-};
+  // 🔥 ボタン統一（ここが重要）
+  const handleMainSearch = () => {
+    if (selectedFile) {
+      handleImageSearch(selectedFile);
+    } else {
+      handleSearch();
+    }
+  };
 
   return (
     <div
@@ -105,67 +113,56 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
         minHeight: "100vh",
       }}
     >
-      {/* タイトル */}
       <h1 style={{ textAlign: "center", color: "#7b5cff" }}>
         LookMatch 💜
       </h1>
 
-      <h2 style={{ textAlign: "center" }}>📸 スクショで探す</h2>
+      <h2 style={{ textAlign: "center" }}>
+        📸 スクショで探す
+      </h2>
 
-      {/* 検索 */}
-      <div style={{ textAlign: "center", marginBottom: "20px" }}>
+      {/* 検索UI */}
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           placeholder="例：SNIDEL ワンピ"
           style={{
-            padding: "12px",
-            width: "70%",
-            borderRadius: "20px",
-            border: "1px solid #ccc",
+            padding: "14px",
+            width: "80%",
+            borderRadius: "999px",
+            border: "1px solid #ddd",
           }}
         />
 
-        <br />
+        <div style={{ marginTop: "15px" }}>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setSelectedFile(e.target.files[0]);
+              }
+            }}
+          />
+        </div>
 
         <button
-          onClick={handleSearch}
+          onClick={handleMainSearch}
           style={{
-            marginTop: "10px",
-            padding: "10px 20px",
-            borderRadius: "20px",
+            marginTop: "15px",
+            padding: "12px 30px",
+            borderRadius: "999px",
             border: "none",
             background: "#7b5cff",
             color: "white",
+            fontWeight: "bold",
             cursor: "pointer",
           }}
         >
-          検索
+          🔍 検索する
         </button>
-
-        {/* ✅ スクショアップ */}
-        <input
-  type="file"
-  accept="image/*"
-  onChange={(e) => {
-    if (e.target.files?.[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  }}
-/>
       </div>
-
-      <button
-  onClick={() => {
-    if (selectedFile) {
-      handleImageSearch(selectedFile);
-    } else {
-      alert("画像を選択してね");
-    }
-  }}
->
-  画像で検索
-</button>
 
       {/* ローディング */}
       {loading && <p style={{ textAlign: "center" }}>検索中...</p>}
@@ -195,38 +192,19 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
               style={{ borderRadius: "12px" }}
             />
 
-            <button
-              onClick={() => toggleFavorite(index)}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "20px",
-                cursor: "pointer",
-              }}
-            >
+            <button onClick={() => toggleFavorite(index)}>
               {favorites.includes(index) ? "❤️" : "🤍"}
             </button>
 
             <h3>{item.title}</h3>
 
-            <p style={{ color: "#888" }}>
+            <p>
               {item.high_brand} → {item.dupe_brand}
             </p>
 
-            <p style={{ fontWeight: "bold" }}>¥{item.price}</p>
+            <p>¥{item.price}</p>
 
-            <a
-              href={item.link}
-              target="_blank"
-              style={{
-                display: "inline-block",
-                background: "#c084fc",
-                color: "#fff",
-                padding: "10px 15px",
-                borderRadius: "10px",
-                marginTop: "10px",
-              }}
-            >
+            <a href={item.link} target="_blank">
               購入する
             </a>
           </div>
