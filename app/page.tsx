@@ -11,6 +11,8 @@ type Product = {
   dupe_image: string;
   link: string;
   price: number;
+  tags?: string[];
+  ranking?: number;
 };
 
 export default function Home() {
@@ -22,9 +24,20 @@ export default function Home() {
 
   // 初期ロード（お気に入り）
   useEffect(() => {
-    const saved = localStorage.getItem("fav");
-    if (saved) setFavorites(JSON.parse(saved));
-  }, []);
+  const saved = localStorage.getItem("fav");
+  if (saved) {
+    setFavorites(JSON.parse(saved));
+  }
+
+  fetch("/api/search", {
+    method: "POST",
+    body: JSON.stringify({ keyword: "" }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      setResults(data);
+    });
+}, []);
 
   // お気に入り切り替え
   const toggleFavorite = (index: number) => {
@@ -120,6 +133,41 @@ export default function Home() {
       <h2 style={{ textAlign: "center" }}>
         📸 スクショで探す
       </h2>
+      <div
+  style={{
+    background: "#ffffff",
+    borderRadius: "20px",
+    padding: "20px",
+    marginBottom: "30px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2 style={{ color: "#7b5cff" }}>
+    🔥 人気ランキング TOP3
+  </h2>
+
+  {results
+    .filter((item) => item.ranking)
+    .sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
+    .slice(0, 3)
+    .map((item, index) => (
+      <div
+        key={index}
+        style={{
+          padding: "12px 0",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <p style={{ fontWeight: "bold" }}>
+          {item.ranking}位 👑 {item.title}
+        </p>
+
+        <p style={{ color: "#888" }}>
+          {item.high_brand} → {item.dupe_brand}
+        </p>
+      </div>
+    ))}
+</div>
 
       {/* 検索UI */}
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
