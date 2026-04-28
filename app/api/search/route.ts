@@ -5,7 +5,6 @@ export async function POST(req: Request) {
   try {
     const { keyword } = await req.json();
 
-    // 空検索なら全部返す
     if (!keyword) {
       return NextResponse.json(products);
     }
@@ -16,11 +15,13 @@ export async function POST(req: Request) {
       .filter((k: string) => k);
 
     const results = products.filter((item: any) => {
-      // 🔥 null対策（これが超重要）
+      const tagsText = (item.tags || []).join(" ").toLowerCase();
+
       const text = `
         ${item.title || ""}
         ${item.high_brand || ""}
         ${item.dupe_brand || ""}
+        ${tagsText}
       `.toLowerCase();
 
       return keywords.some((k: string) => text.includes(k));

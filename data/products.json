@@ -513,5 +513,25 @@
   "price": 2999,
   "tags": ["ワンピ", "韓国"],
   "score": 95
-}
+},
+  {
+    "title": "SNIDEL風 ドットフリルワンピース",
+    "high_brand": "SNIDEL",
+    "high_image": "",
+    "dupe_brand": "GRL",
+    "dupe_image": "https://via.placeholder.com/300",
+    "link": "https://www.grail.bz/item/mb16021112/?s=2",
+    "price": 2999,
+    "tags": ["ワンピース", "白", "ガーリー", "韓国", "春"]
+  },
+  {
+    "title": "MERCURYDUO風 ニットセットアップ",
+    "high_brand": "MERCURYDUO",
+    "high_image": "",
+    "dupe_brand": "GU",
+    "dupe_image": "https://via.placeholder.com/300",
+    "link": "https://www.grail.bz/item/ru15051112/",
+    "price": 3990,
+    "tags": ["ニット", "セットアップ", "大人", "秋"]
+  }
 ]
