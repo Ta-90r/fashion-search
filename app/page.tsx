@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 type Product = {
-  title: string;
-  high_brand: string;
-  high_image: string;
-  dupe_brand: string;
-  dupe_image: string;
-  link: string;
-  price: number;
+  title?: string;
+  high_brand?: string;
+  high_image?: string;
+  dupe_brand?: string;
+  dupe_image?: string;
+  link?: string;
+  price?: number;
   tags?: string[];
   ranking?: number;
 };
@@ -145,6 +145,50 @@ export default function Home() {
   <h2 style={{ color: "#7b5cff" }}>
     🔥 人気ランキング TOP3
   </h2>
+
+  <div
+  style={{
+    background: "#ffffff",
+    borderRadius: "20px",
+    padding: "20px",
+    marginBottom: "30px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2 style={{ color: "#7b5cff" }}>
+    ❤️ お気に入り一覧
+  </h2>
+
+  {results.filter((_, index) => favorites.includes(index)).length === 0 ? (
+    <p style={{ color: "#888" }}>
+      まだお気に入りがありません
+    </p>
+  ) : (
+    results
+      .filter((_, index) => favorites.includes(index))
+      .map((item, index) => (
+        <div
+          key={index}
+          style={{
+            padding: "12px 0",
+            borderBottom: "1px solid #eee",
+          }}
+        >
+          <p style={{ fontWeight: "bold" }}>
+            {item.title}
+          </p>
+
+          <p style={{ color: "#888" }}>
+            {item.high_brand} → {item.dupe_brand}
+          </p>
+
+          <p style={{ fontWeight: "bold" }}>
+            ¥{item.price || "-"}
+          </p>
+        </div>
+      ))
+  )}
+</div>
 
   {results
     .filter((item) => item.ranking)
