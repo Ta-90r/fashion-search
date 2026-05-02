@@ -30,7 +30,7 @@ export default function Home() {
       setFavorites(JSON.parse(saved));
     }
 
-    fetch("/api/search", {
+    fetch("/api/rakuten-search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export default function Home() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/search", {
+      const res = await fetch("/api/rakuten-search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -107,7 +107,7 @@ export default function Home() {
 
       const searchKeyword = tags.join(" ");
 
-      const res = await fetch("/api/search", {
+      const res = await fetch("/api/rakuten-search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +157,7 @@ export default function Home() {
     setGeneratedTags(data.keyword.split(" "));
 
     // 👇 その結果を検索に使う
-    const searchRes = await fetch("/api/search", {
+    const searchRes = await fetch("/api/rakuten-search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
