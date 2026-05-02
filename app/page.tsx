@@ -128,13 +128,53 @@ export default function Home() {
   };
 
   // メイン検索ボタン
-  const handleMainSearch = () => {
-    if (selectedFile) {
-      handleImageSearch(selectedFile);
-    } else {
-      handleSearch();
-    }
-  };
+  const handleMainSearch = async () => {
+  console.log("検索ボタン押された");
+
+  if (!selectedFile) {
+    alert("画像を選択してね");
+    return;
+  }
+
+  console.log("画像検索スタート");
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    // 👇 強制的に image-search を叩く
+    const res = await fetch("/api/image-search", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    console.log("image-search結果:", data);
+
+    setGeneratedTags(data.keyword.split(" "));
+
+    // 👇 その結果を検索に使う
+    const searchRes = await fetch("/api/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ keyword: data.keyword }),
+    });
+
+    const results = await searchRes.json();
+    setResults(results);
+
+  } catch (error) {
+    console.error(error);
+    alert("検索失敗");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div
@@ -262,14 +302,15 @@ export default function Home() {
 
         <div style={{ marginTop: "15px" }}>
           <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                setSelectedFile(e.target.files[0]);
-              }
-            }}
-          />
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    if (e.target.files && e.target.files[0]) {
+      console.log("選択された:", e.target.files[0].name);
+      setSelectedFile(e.target.files[0]);
+    }
+  }}
+/>
         </div>
 
         <button
