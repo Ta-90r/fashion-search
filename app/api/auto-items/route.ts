@@ -1,3 +1,5 @@
+console.log("🔥 API通過した");
+console.log("APP ID:", process.env.RAKUTEN_APP_ID);
 import { NextResponse } from "next/server";
 
 export async function GET() {

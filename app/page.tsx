@@ -152,7 +152,13 @@ export default function Home() {
 
     const data = await res.json();
 
-    console.log("image-search結果:", data);
+    console.log("image-search結果:", JSON.stringify(data, null, 2));
+
+    if (!data.keyword) {
+  console.error("keywordがない", data);
+  alert("タグ生成失敗");
+  return;
+}
 
     setGeneratedTags(data.keyword.split(" "));
 

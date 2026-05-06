@@ -7,8 +7,9 @@ export async function POST(req: Request) {
 
     if (!file) {
       return NextResponse.json({
-        keyword: "人気",
+        keyword: "白 ニット レディース",
       });
+      
     }
 
     const fileName = file.name.toLowerCase();
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
 
     // ▼ ファイル名から仮タグ生成（AIなし版）
     if (fileName.includes("white")) {
-      tags.push("白");
+      tags.push("白,トップス,レディース");
     }
 
     if (fileName.includes("black")) {
