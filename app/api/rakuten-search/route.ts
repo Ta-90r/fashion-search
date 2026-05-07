@@ -2,78 +2,71 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const keyword = body?.keyword;
+    const { keyword } = await req.json();
 
-    console.log("検索キーワード:", keyword);
-
+    // 1. キーワードチェック
     if (!keyword) {
+      console.log("キーワードが空です");
       return NextResponse.json([]);
     }
 
-    // 🔥 楽天ID取得
+    // 2. 環境変数の取得（英数字混じりのIDでOK）
     const APP_ID = process.env.RAKUTEN_APP_ID;
-
-    console.log("APP_ID確認:", APP_ID);
-
+    
     if (!APP_ID) {
-      console.error("APP_IDなし");
-      return NextResponse.json([]);
+      console.error("APP_IDが環境変数に設定されていません");
+      return NextResponse.json({ error: "環境変数未設定" }, { status: 500 });
     }
 
-    // 🔥 URLを安全に生成
-    const params = new URLSearchParams({
-      applicationId: APP_ID,
-      keyword: keyword,
-      hits: "20",
+    // 3. 【重要】2026年最新のドメインとエンドポイントに修正
+    // 旧: app.rakuten.co.jp -> 新: openapi.rakuten.co.jp
+    const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
+    url.searchParams.append("applicationId", APP_ID);
+    url.searchParams.append("keyword", keyword);
+    url.searchParams.append("hits", "20");
+
+    console.log("リクエスト送信先:", url.toString());
+
+    // 4. APIリクエスト（Refererヘッダーが必須になる場合があります）
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        // 自分のアプリURLを伝えることで認証を通しやすくします
+        "Referer": "https://fashion-search-010.vercel.app/",
+      },
     });
-
-    const url =
-      "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?" +
-      params.toString();
-
-    console.log("最終URL:", url);
-
-    const res = await fetch(url);
-
-    console.log("HTTP Status:", res.status);
 
     const data = await res.json();
 
-    console.log("楽天API raw:", JSON.stringify(data, null, 2));
-
-    // 🔥 エラー返却
-    if (data.error) {
-      console.error("楽天エラー:", data.error_description);
-      return NextResponse.json([]);
+    // 5. 楽天からのエラー応答を詳細にログ出力
+    if (!res.ok || data.error) {
+      console.error("楽天APIエラー詳細:", data);
+      return NextResponse.json({ 
+        error: data.error_description || "楽天API側でエラーが発生しました" 
+      }, { status: res.status });
     }
 
-    // 🔥 Items防御
+    // 6. データの整形
     if (!data.Items || !Array.isArray(data.Items)) {
-      console.error("Itemsなし");
       return NextResponse.json([]);
     }
 
     const items = data.Items.map((item: any) => {
       const i = item.Item;
-
       return {
         title: i.itemName || "商品名なし",
         price: i.itemPrice || 0,
-        dupe_image:
-          i.mediumImageUrls?.[0]?.imageUrl ||
-          "https://via.placeholder.com/300",
+        // 画像URLの取得先も最新の階層に合わせます
+        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || "https://via.placeholder.com/300",
         link: i.itemUrl || "#",
       };
     });
 
-    console.log("取得件数:", items.length);
-
     return NextResponse.json(items);
 
-  } catch (error) {
-    console.error("楽天APIエラー:", error);
-
-    return NextResponse.json([]);
+  } catch (error: any) {
+    console.error("サーバー側エラー:", error.message);
+    return NextResponse.json({ error: "内部サーバーエラー" }, { status: 500 });
   }
 }
