@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const APP_ID = process.env.RAKUTEN_APP_ID;
-    const url = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401?applicationId=${APP_ID}&keyword=${encodeURIComponent("レディース ファッション 人気")}&hits=10`;
+    if (!APP_ID) return NextResponse.json([]);
+
+    const url = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401?accessKey=${APP_ID}&keyword=${encodeURIComponent("レディース ファッション 人気")}&hits=10`;
 
     const res = await fetch(url, {
       headers: { "Referer": "https://fashion-search-010.vercel.app" }
