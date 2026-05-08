@@ -5,67 +5,35 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
+    // ファイルがない場合はデフォルトキーワード
     if (!file) {
-      return NextResponse.json({
-        keyword: "白 ニット レディース",
-      });
-      
+      return NextResponse.json({ keyword: "ファッション 人気 レディース" });
     }
 
     const fileName = file.name.toLowerCase();
-
     let tags: string[] = [];
 
-    // ▼ ファイル名から仮タグ生成（AIなし版）
-    if (fileName.includes("white")) {
-      tags.push("白,トップス,レディース");
-    }
+    // ファイル名に基づいた簡易キーワード判定
+    if (fileName.includes("white")) tags.push("白");
+    if (fileName.includes("black")) tags.push("黒");
+    if (fileName.includes("knit")) tags.push("ニット");
+    if (fileName.includes("onepiece")) tags.push("ワンピース");
+    if (fileName.includes("pink")) tags.push("ピンク");
+    if (fileName.includes("blue")) tags.push("青");
 
-    if (fileName.includes("black")) {
-      tags.push("黒");
-    }
-
-    if (fileName.includes("onepiece")) {
-      tags.push("ワンピース");
-    }
-
-    if (fileName.includes("setup")) {
-      tags.push("セットアップ");
-    }
-
-    if (fileName.includes("girly")) {
-      tags.push("ガーリー");
-    }
-
-    if (fileName.includes("korea")) {
-      tags.push("韓国");
-    }
-
-    if (fileName.includes("casual")) {
-      tags.push("カジュアル");
-    }
-
-    if (fileName.includes("pink")) {
-      tags.push("ピンク");
-    }
-
-    if (fileName.includes("beige")) {
-      tags.push("ベージュ");
-    }
-
-    // ▼ 何も判定できなかった場合
+    // 何もヒットしない、または基本タグとして追加
     if (tags.length === 0) {
-      tags = ["人気"];
+      tags.push("レディース", "ファッション");
+    } else {
+      tags.push("レディース");
     }
 
     return NextResponse.json({
       keyword: tags.join(" "),
     });
+
   } catch (error) {
     console.error("image-search error:", error);
-
-    return NextResponse.json({
-      keyword: "人気",
-    });
+    return NextResponse.json({ keyword: "レディース ファッション" });
   }
 }
