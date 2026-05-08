@@ -1,41 +1,24 @@
-console.log("🔥 API通過した");
-console.log("APP ID:", process.env.RAKUTEN_APP_ID);
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const appId = process.env.RAKUTEN_APP_ID;
-    const affId = process.env.RAKUTEN_AFF_ID;
+    const APP_ID = process.env.RAKUTEN_APP_ID;
+    const url = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401?applicationId=${APP_ID}&keyword=${encodeURIComponent("レディース ファッション 人気")}&hits=10`;
 
-    console.log("APP ID:", appId);
-
-    const keyword = "ワンピース";
-
-    const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=${appId}&keyword=${encodeURIComponent(
-      keyword
-    )}&affiliateId=${affId}`;
-
-    const res = await fetch(url);
-
+    const res = await fetch(url, {
+      headers: { "Referer": "https://fashion-search-010.vercel.app" }
+    });
     const data = await res.json();
 
-    console.log("楽天結果:", data);
-
-    if (!data.Items) {
-      return NextResponse.json([]);
-    }
-
-    const items = data.Items.map((item: any) => ({
-      name: item.Item.itemName,
-      image: item.Item.mediumImageUrls[0].imageUrl,
-      link: item.Item.affiliateUrl,
+    const items = data.Items?.map((item: any) => ({
+      title: item.Item.itemName,
       price: item.Item.itemPrice,
-    }));
+      dupe_image: item.Item.mediumImageUrls?.[0]?.imageUrl,
+      link: item.Item.itemUrl,
+    })) || [];
 
     return NextResponse.json(items);
-
   } catch (error) {
-    console.error("API ERROR:", error);
     return NextResponse.json([]);
   }
 }
