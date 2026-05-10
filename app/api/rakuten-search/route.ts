@@ -3,33 +3,33 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const { keyword } = await req.json();
-    // VercelからIDを取得。念のため完全にクリーンな状態にします
-    const APP_ID = process.env.RAKUTEN_APP_ID?.replace(/\s/g, "");
+    const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
 
     if (!APP_ID) {
-      console.error("RAKUTEN_APP_IDが見つかりません。Vercelの設定を確認してください。");
+      console.error("❌RAKUTEN_APP_IDが設定されていません");
       return NextResponse.json([]);
     }
 
     if (!keyword) return NextResponse.json([]);
 
-    // 1. URLを構築（?の直後に必ずapplicationIdが来るようにします）
-    // 2026年最新ドメインに固定します
+    // 1. 最新のURLを作成
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
-    const params = new URLSearchParams();
-    params.append("applicationId", APP_ID);
-    params.append("keyword", keyword);
-    params.append("hits", "10");
-    params.append("formatVersion", "2");
+    const url = new URL(baseUrl);
+    
+    // 2. 【最重要】パラメータを accessKey に一本化し、確実に付与します
+    // 楽天が「accessKeyをよこせ」と言っているので、その通りに合わせます
+    url.searchParams.set("accessKey", APP_ID); 
+    url.searchParams.set("keyword", keyword);
+    url.searchParams.set("hits", "15");
+    url.searchParams.set("formatVersion", "2");
 
-    const finalUrl = `${baseUrl}?${params.toString()}`;
+    console.log("🚀最終リクエストURL:", url.toString());
 
-    // 2. Fetch実行
-    const res = await fetch(finalUrl, {
+    const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
         "Accept": "application/json",
-        // 最後に / を入れない、楽天デベロッパー登録ドメイン
+        // 楽天デベロッパーに登録したドメインと完全に一致させる
         "Referer": "https://fashion-search-010.vercel.app"
       },
       cache: "no-store"
@@ -37,15 +37,13 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json();
 
-    // 3. エラー時の詳細ログ
+    // 3. エラー詳細のチェック
     if (!res.ok || data.errors) {
-      console.error("❌楽天APIエラー詳細:", JSON.stringify(data));
+      console.error("❌楽天APIエラー応答:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
-    // 4. データ整形
     const items = (data.Items || []).map((item: any) => {
-      // formatVersion: 2 の場合、階層が深くないので直接取得
       const i = item.Item || item;
       return {
         title: i.itemName,
@@ -57,8 +55,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(items);
 
-  } catch (error: any) {
-    console.error("❌サーバー内部エラー:", error.message);
+  } catch (error) {
+    console.error("❌サーバーエラー:", error);
     return NextResponse.json([]);
   }
 }
