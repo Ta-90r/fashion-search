@@ -3,20 +3,25 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const { keyword } = await req.json();
+    
+    // Vercelから2つの値を読み込む
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
+    const ACCESS_KEY = process.env.RAKUTEN_ACCESS_KEY?.trim();
 
-    if (!APP_ID) return NextResponse.json([]);
-    if (!keyword) return NextResponse.json([]);
+    if (!APP_ID || !ACCESS_KEY) {
+      console.error("❌環境変数が不足しています (APP_ID または ACCESS_KEY)");
+      return NextResponse.json([]);
+    }
 
-    // 2026年最新URL
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
     
-    // 【究極の対策】新旧すべてのパラメータ名を「これでもか」と詰め込みます
+    // 【2026年最新仕様】
+    // applicationId と accessKey をそれぞれ正しい場所へ割り振ります
     const params = new URLSearchParams();
-    params.append("applicationId", APP_ID); // 旧仕様の名前
-    params.append("accessKey", APP_ID);     // 2026年最新の名前
-    params.append("keyword", `${keyword} プチプラ`);
-    params.append("hits", "20");
+    params.append("applicationId", APP_ID);
+    params.append("accessKey", ACCESS_KEY); // ここに「アクセスキー」を入れる！
+    params.append("keyword", keyword);
+    params.append("hits", "15");
     params.append("formatVersion", "2");
 
     const finalUrl = `${baseUrl}?${params.toString()}`;
@@ -25,20 +30,15 @@ export async function POST(req: NextRequest) {
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "Referer": "https://fashion-search-010.vercel.app",
-        // ヘッダー側にも新旧両方の名前でIDを載せる
-        "applicationId": APP_ID,
-        "accessKey": APP_ID,
-        "x-rakuten-applicationid": APP_ID
+        "Referer": "https://fashion-search-010.vercel.app"
       },
       cache: 'no-store'
     });
 
     const data = await res.json();
 
-    // 200が返ってきても、中身にエラーが含まれている場合をチェック
-    if (!res.ok || data.errors || data.error) {
-      console.error("❌楽天APIエラー最終詳細:", JSON.stringify(data));
+    if (!res.ok || data.errors) {
+      console.error("❌楽天APIエラー詳細:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       return {
         title: i.itemName,
         price: i.itemPrice,
-        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || "https://via.placeholder.com/300",
+        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || i.mediumImageUrls?.[0],
         link: i.itemUrl,
       };
     });
