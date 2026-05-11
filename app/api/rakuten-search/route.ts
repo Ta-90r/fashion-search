@@ -5,43 +5,53 @@ export async function POST(req: NextRequest) {
     const { keyword } = await req.json();
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
 
-    if (!APP_ID) return NextResponse.json([]);
+    if (!APP_ID) {
+      console.error("❌RAKUTEN_APP_IDが見つかりません");
+      return NextResponse.json([]);
+    }
+
     if (!keyword) return NextResponse.json([]);
 
-    // 【戦略変更】403エラー(Invalid)を回避するため、
-    // 最も安定してIDを認識してくれる「ichiba/Item/Search」エンドポイントを使用します。
-    const baseUrl = "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706";
+    // 高級ブランドからプチプラ(GRL等)へ誘導するための検索ワード調整
+    // 「ブランド名 プチプラ」などの組み合わせでヒットしやすくします
+    const searchKeyword = `${keyword} プチプラ`;
+
+    // 2026年最新URL (あなたのIDはこのドメイン専用です)
+    const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
     
-    const params = new URLSearchParams();
-    params.append("applicationId", APP_ID);
-    params.append("keyword", keyword);
-    params.append("format", "json");
-    params.append("hits", "20");
-    // プチプラを見つけやすくするため、価格の安い順などの要素を後で入れられます
+    // パラメータ作成
+    const url = new URL(baseUrl);
+    url.searchParams.append("applicationId", APP_ID); // あなたのIDはここに入れます
+    url.searchParams.append("keyword", searchKeyword);
+    url.searchParams.append("hits", "20");
+    url.searchParams.append("formatVersion", "2");
+    // プチプラに絞るために、あえて5,000円以下などの制限を入れるのもアリです
+    // url.searchParams.append("maxPrice", "5000");
 
-    const finalUrl = `${baseUrl}?${params.toString()}`;
-
-    console.log("🚀安定版URLでリクエスト送信中...");
-
-    const res = await fetch(finalUrl, {
+    const res = await fetch(url.toString(), {
       method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Referer": "https://fashion-search-010.vercel.app",
+        // 2026年版特有のヘッダーも念のため追加
+        "x-rakuten-applicationid": APP_ID 
+      },
       cache: 'no-store'
     });
 
     const data = await res.json();
 
-    if (data.error || data.errors) {
-      console.error("❌楽天APIエラー詳細:", JSON.stringify(data));
+    if (!res.ok || data.errors || data.error) {
+      console.error("❌楽天API最終エラー詳細:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
-    // データの取り出し
     const items = (data.Items || []).map((item: any) => {
-      const i = item.Item;
+      const i = item.Item || item;
       return {
         title: i.itemName,
         price: i.itemPrice,
-        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || "https://via.placeholder.com/300",
+        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || i.mediumImageUrls?.[0],
         link: i.itemUrl,
       };
     });
@@ -49,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(items);
 
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("❌通信エラー:", error);
     return NextResponse.json([]);
   }
 }
