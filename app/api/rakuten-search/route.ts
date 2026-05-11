@@ -5,44 +5,40 @@ export async function POST(req: NextRequest) {
     const { keyword } = await req.json();
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
 
-    if (!APP_ID) {
-      console.error("❌RAKUTEN_APP_IDが見つかりません");
-      return NextResponse.json([]);
-    }
-
+    if (!APP_ID) return NextResponse.json([]);
     if (!keyword) return NextResponse.json([]);
 
-    // 高級ブランドからプチプラ(GRL等)へ誘導するための検索ワード調整
-    // 「ブランド名 プチプラ」などの組み合わせでヒットしやすくします
-    const searchKeyword = `${keyword} プチプラ`;
-
-    // 2026年最新URL (あなたのIDはこのドメイン専用です)
+    // 2026年最新URL
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
     
-    // パラメータ作成
-    const url = new URL(baseUrl);
-    url.searchParams.append("applicationId", APP_ID); // あなたのIDはここに入れます
-    url.searchParams.append("keyword", searchKeyword);
-    url.searchParams.append("hits", "20");
-    url.searchParams.append("formatVersion", "2");
-    // プチプラに絞るために、あえて5,000円以下などの制限を入れるのもアリです
-    // url.searchParams.append("maxPrice", "5000");
+    // 【究極の対策】新旧すべてのパラメータ名を「これでもか」と詰め込みます
+    const params = new URLSearchParams();
+    params.append("applicationId", APP_ID); // 旧仕様の名前
+    params.append("accessKey", APP_ID);     // 2026年最新の名前
+    params.append("keyword", `${keyword} プチプラ`);
+    params.append("hits", "20");
+    params.append("formatVersion", "2");
 
-    const res = await fetch(url.toString(), {
+    const finalUrl = `${baseUrl}?${params.toString()}`;
+
+    const res = await fetch(finalUrl, {
       method: "GET",
       headers: {
         "Accept": "application/json",
         "Referer": "https://fashion-search-010.vercel.app",
-        // 2026年版特有のヘッダーも念のため追加
-        "x-rakuten-applicationid": APP_ID 
+        // ヘッダー側にも新旧両方の名前でIDを載せる
+        "applicationId": APP_ID,
+        "accessKey": APP_ID,
+        "x-rakuten-applicationid": APP_ID
       },
       cache: 'no-store'
     });
 
     const data = await res.json();
 
+    // 200が返ってきても、中身にエラーが含まれている場合をチェック
     if (!res.ok || data.errors || data.error) {
-      console.error("❌楽天API最終エラー詳細:", JSON.stringify(data));
+      console.error("❌楽天APIエラー最終詳細:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
@@ -51,7 +47,7 @@ export async function POST(req: NextRequest) {
       return {
         title: i.itemName,
         price: i.itemPrice,
-        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || i.mediumImageUrls?.[0],
+        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || "https://via.placeholder.com/300",
         link: i.itemUrl,
       };
     });
