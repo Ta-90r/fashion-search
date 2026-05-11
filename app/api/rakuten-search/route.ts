@@ -6,40 +6,32 @@ export async function POST(req: NextRequest) {
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
 
     if (!APP_ID) {
-      console.error("❌RAKUTEN_APP_IDが設定されていません");
+      console.error("RAKUTEN_APP_ID missing");
       return NextResponse.json([]);
     }
 
-    if (!keyword) return NextResponse.json([]);
-
-    // 1. 最新のURLを作成
+    // 2026年最新URL
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
-    const url = new URL(baseUrl);
     
-    // 2. 【最重要】パラメータを accessKey に一本化し、確実に付与します
-    // 楽天が「accessKeyをよこせ」と言っているので、その通りに合わせます
-    url.searchParams.set("accessKey", APP_ID); 
-    url.searchParams.set("keyword", keyword);
-    url.searchParams.set("hits", "15");
-    url.searchParams.set("formatVersion", "2");
+    // 【超重要】URLSearchParamsを使わず、文字列で直接「両方のID」を書きます
+    // ログにこれが出てこない場合は、デプロイが失敗しています
+    const finalUrl = `${baseUrl}?applicationId=${APP_ID}&accessKey=${APP_ID}&keyword=${encodeURIComponent(keyword)}&hits=20&formatVersion=2`;
 
-    console.log("🚀最終リクエストURL:", url.toString());
+    console.log("🔥今度こそ両方送るURL:", finalUrl.replace(APP_ID, "SECRET"));
 
-    const res = await fetch(url.toString(), {
+    const res = await fetch(finalUrl, {
       method: "GET",
       headers: {
         "Accept": "application/json",
-        // 楽天デベロッパーに登録したドメインと完全に一致させる
         "Referer": "https://fashion-search-010.vercel.app"
       },
-      cache: "no-store"
+      cache: 'no-store'
     });
 
     const data = await res.json();
 
-    // 3. エラー詳細のチェック
     if (!res.ok || data.errors) {
-      console.error("❌楽天APIエラー応答:", JSON.stringify(data));
+      console.error("❌楽天APIエラー詳細:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
@@ -56,7 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(items);
 
   } catch (error) {
-    console.error("❌サーバーエラー:", error);
+    console.error("Server Error:", error);
     return NextResponse.json([]);
   }
 }
