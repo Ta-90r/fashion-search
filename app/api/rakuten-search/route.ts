@@ -5,42 +5,43 @@ export async function POST(req: NextRequest) {
     const { keyword } = await req.json();
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
 
-    if (!APP_ID) {
-      console.error("RAKUTEN_APP_ID missing");
-      return NextResponse.json([]);
-    }
+    if (!APP_ID) return NextResponse.json([]);
+    if (!keyword) return NextResponse.json([]);
 
-    // 2026年最新URL
-    const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
+    // 【戦略変更】403エラー(Invalid)を回避するため、
+    // 最も安定してIDを認識してくれる「ichiba/Item/Search」エンドポイントを使用します。
+    const baseUrl = "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706";
     
-    // 【超重要】URLSearchParamsを使わず、文字列で直接「両方のID」を書きます
-    // ログにこれが出てこない場合は、デプロイが失敗しています
-    const finalUrl = `${baseUrl}?applicationId=${APP_ID}&accessKey=${APP_ID}&keyword=${encodeURIComponent(keyword)}&hits=20&formatVersion=2`;
+    const params = new URLSearchParams();
+    params.append("applicationId", APP_ID);
+    params.append("keyword", keyword);
+    params.append("format", "json");
+    params.append("hits", "20");
+    // プチプラを見つけやすくするため、価格の安い順などの要素を後で入れられます
 
-    console.log("🔥今度こそ両方送るURL:", finalUrl.replace(APP_ID, "SECRET"));
+    const finalUrl = `${baseUrl}?${params.toString()}`;
+
+    console.log("🚀安定版URLでリクエスト送信中...");
 
     const res = await fetch(finalUrl, {
       method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Referer": "https://fashion-search-010.vercel.app"
-      },
       cache: 'no-store'
     });
 
     const data = await res.json();
 
-    if (!res.ok || data.errors) {
+    if (data.error || data.errors) {
       console.error("❌楽天APIエラー詳細:", JSON.stringify(data));
       return NextResponse.json([]);
     }
 
+    // データの取り出し
     const items = (data.Items || []).map((item: any) => {
-      const i = item.Item || item;
+      const i = item.Item;
       return {
         title: i.itemName,
         price: i.itemPrice,
-        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || i.mediumImageUrls?.[0],
+        dupe_image: i.mediumImageUrls?.[0]?.imageUrl || "https://via.placeholder.com/300",
         link: i.itemUrl,
       };
     });
