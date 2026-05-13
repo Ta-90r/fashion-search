@@ -3,14 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { keyword, maxPrice } = body; // フロントから価格を受け取る
+    const { keyword, maxPrice } = body;
 
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
     const ACCESS_KEY = process.env.RAKUTEN_ACCESS_KEY?.trim();
 
     if (!APP_ID || !ACCESS_KEY) {
-      console.error("環境変数が足りません");
-      return NextResponse.json([]);
+      return NextResponse.json({ error: "Config missing" }, { status: 500 });
     }
 
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
@@ -18,12 +17,10 @@ export async function POST(req: NextRequest) {
     
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
-    // 「プチプラ」を自動で加えて、GRL系の安くて可愛い服をヒットしやすくします
     url.searchParams.append("keyword", `${keyword || ""} プチプラ`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
-    // 価格上限の設定がある場合は追加
     if (maxPrice) {
       url.searchParams.append("maxPrice", maxPrice.toString());
     }
@@ -32,7 +29,9 @@ export async function POST(req: NextRequest) {
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "Referer": "https://fashion-search-010.vercel.app/"
+        // 【最重要】ここをあなたのVercelドメインに完全に一致させます
+        "Referer": "https://fashion-search-010.vercel.app/", 
+        "Origin": "https://fashion-search-010.vercel.app"
       },
       cache: 'no-store'
     });
@@ -40,24 +39,26 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok || data.errors) {
-      console.error("楽天APIエラー:", JSON.stringify(data));
+      console.error("❌楽天APIエラー応答:", JSON.stringify(data));
+      // エラー時は空配列を返してアプリが落ちないようにする
       return NextResponse.json([]);
     }
 
-    // 画像URLを確実に取得し、かつ高画質化する処理
     const items = (data.Items || []).map((item: any) => {
       const i = item.Item || item;
-      // 楽天APIの画像URLは配列の中にあったり文字列だったりするので、安全に取得
-      let rawImg = "";
+      
+      // 画像URLを安全に取得
+      let imageUrl = "";
       if (i.mediumImageUrls && i.mediumImageUrls.length > 0) {
-        rawImg = typeof i.mediumImageUrls[0] === 'string' ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl;
+        const firstImg = i.mediumImageUrls[0];
+        imageUrl = typeof firstImg === "string" ? firstImg : firstImg.imageUrl;
       }
 
       return {
         title: i.itemName,
         price: i.itemPrice,
-        // 画像サイズ制限（?_ex=...）を消して、できるだけ綺麗に表示
-        dupe_image: rawImg ? rawImg.split('?')[0] : "https://via.placeholder.com/300",
+        // 画像URLを整形（?_ex=... を消すと高画質になります）
+        dupe_image: imageUrl ? imageUrl.split("?")[0] : "", 
         link: i.itemUrl,
       };
     });
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(items);
 
   } catch (error) {
-    console.error("API実行エラー:", error);
+    console.error("❌致命的エラー:", error);
     return NextResponse.json([]);
   }
 }

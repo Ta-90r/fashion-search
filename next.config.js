@@ -1,7 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['thumbnail.image.rakuten.co.jp', 'image.rakuten.co.jp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'thumbnail.image.rakuten.co.jp',
+      },
+      {
+        protocol: 'https',
+        hostname: 'image.rakuten.co.jp',
+      },
+    ],
   },
 };
 
