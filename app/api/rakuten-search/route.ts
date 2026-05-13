@@ -12,27 +12,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Config missing" }, { status: 500 });
     }
 
-    // --- ジャンル絞り込みロジック ---
+    // --- 【強化版】ジャンル判定ロジック ---
     let genreId = ""; 
     const k = keyword || "";
-    if (k.includes("ワンピース") || k.includes("ワンピ")) genreId = "501911";
-    if (k.includes("トップス") || k.includes("シャツ") || k.includes("ブラウス")) genreId = "100371";
-    if (k.includes("スカート")) genreId = "501912";
-    if (k.includes("パンツ") || k.includes("ズボン")) genreId = "501913";
-    if (k.includes("靴") || k.includes("サンダル") || k.includes("パンプス")) genreId = "101105";
+    
+    // 特定の単語が含まれる場合、それ以外のジャンルを拾わないようにIDを固定
+    if (k.match(/ワンピース|ワンピ|ドレス/)) {
+      genreId = "501911"; // レディースワンピース
+    } else if (k.match(/トップス|シャツ|ブラウス|カットソー/)) {
+      genreId = "100371"; // レディーストップス
+    } else if (k.match(/スカート/)) {
+      genreId = "501912"; // レディーススカート
+    } else if (k.match(/パンツ|ズボン/)) {
+      genreId = "501913"; // レディースパンツ
+    } else if (k.match(/靴|サンダル|パンプス|スニーカー/)) {
+      genreId = "101105"; // レディース靴
+    }
 
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
     const url = new URL(baseUrl);
     
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
-    // 「プチプラ」を加えてGRL系を狙う
+    
+    // キーワードを「プチプラ」＋「AIキーワード」に限定し、ノイズを減らす
     url.searchParams.append("keyword", `${k} プチプラ`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
-    if (genreId) url.searchParams.append("genreId", genreId);
-    if (maxPrice) url.searchParams.append("maxPrice", maxPrice.toString());
+    // ジャンルが特定できた場合のみ追加
+    if (genreId) {
+      url.searchParams.append("genreId", genreId);
+    }
+    if (maxPrice) {
+      url.searchParams.append("maxPrice", maxPrice.toString());
+    }
 
     const res = await fetch(url.toString(), {
       method: "GET",

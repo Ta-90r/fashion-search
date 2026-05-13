@@ -109,3 +109,14 @@ export default function Home() {
     </div>
   );
 }
+{/* Footer Section: 審査に必須のリンク */}
+      <footer style={{ marginTop: "60px", padding: "40px 20px", borderTop: "1px solid #eee", textAlign: "center", fontSize: "12px", color: "#888" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "15px", marginBottom: "20px", flexWrap: "wrap" }}>
+          <a href="/blog" style={{ color: "#7b5cff", textDecoration: "none", fontWeight: "bold" }}>おすすめコーデ集</a>
+          <a href="/terms" style={{ color: "#888", textDecoration: "none" }}>利用規約</a>
+          <a href="/privacy" style={{ color: "#888", textDecoration: "none" }}>プライバシーポリシー</a>
+          <a href="/contact" style={{ color: "#888", textDecoration: "none" }}>お問い合わせ</a>
+        </div>
+        <p>© 2026 LookMatch - AI Fashion Search Service</p>
+        <p style={{ marginTop: "10px", fontSize: "10px" }}>※当サイトは楽天アフィリエイト、アクセストレード等の広告プログラムを利用して収益を得ています。</p>
+      </footer>
