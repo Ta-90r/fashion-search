@@ -8,45 +8,31 @@ export async function POST(req: NextRequest) {
     const APP_ID = process.env.RAKUTEN_APP_ID?.trim();
     const ACCESS_KEY = process.env.RAKUTEN_ACCESS_KEY?.trim();
 
-    if (!APP_ID || !ACCESS_KEY) {
-      return NextResponse.json({ error: "Config missing" }, { status: 500 });
-    }
+    if (!APP_ID || !ACCESS_KEY) return NextResponse.json([]);
 
-    // --- 【強化版】ジャンル判定ロジック ---
     let genreId = ""; 
     const k = keyword || "";
     
-    // 特定の単語が含まれる場合、それ以外のジャンルを拾わないようにIDを固定
-    if (k.match(/ワンピース|ワンピ|ドレス/)) {
-      genreId = "501911"; // レディースワンピース
-    } else if (k.match(/トップス|シャツ|ブラウス|カットソー/)) {
-      genreId = "100371"; // レディーストップス
-    } else if (k.match(/スカート/)) {
-      genreId = "501912"; // レディーススカート
-    } else if (k.match(/パンツ|ズボン/)) {
-      genreId = "501913"; // レディースパンツ
-    } else if (k.match(/靴|サンダル|パンプス|スニーカー/)) {
-      genreId = "101105"; // レディース靴
-    }
+    // ジャンルIDを強力に固定（楽天の最新ID）
+    if (k.match(/ワンピース|ワンピ|ドレス/)) genreId = "501911";
+    else if (k.match(/トップス|シャツ|ブラウス/)) genreId = "100371";
+    else if (k.match(/スカート/)) genreId = "501912";
+    else if (k.match(/パンツ|ズボン/)) genreId = "501913";
+    else if (k.match(/バッグ|カバン/)) genreId = "101070";
+    else if (k.match(/靴|サンダル|スニーカー/)) genreId = "101105";
 
     const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
     const url = new URL(baseUrl);
-    
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // キーワードを「プチプラ」＋「AIキーワード」に限定し、ノイズを減らす
+    // 検索語が「ワンピース」なら「ワンピース プチプラ」として検索
     url.searchParams.append("keyword", `${k} プチプラ`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
-    // ジャンルが特定できた場合のみ追加
-    if (genreId) {
-      url.searchParams.append("genreId", genreId);
-    }
-    if (maxPrice) {
-      url.searchParams.append("maxPrice", maxPrice.toString());
-    }
+    if (genreId) url.searchParams.append("genreId", genreId);
+    if (maxPrice) url.searchParams.append("maxPrice", maxPrice.toString());
 
     const res = await fetch(url.toString(), {
       method: "GET",
@@ -59,20 +45,12 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json();
-
-    if (!res.ok || data.errors) {
-      console.error("楽天APIエラー:", JSON.stringify(data));
-      return NextResponse.json([]);
-    }
-
     const items = (data.Items || []).map((item: any) => {
       const i = item.Item || item;
       let imageUrl = "";
-      if (i.mediumImageUrls && i.mediumImageUrls.length > 0) {
-        const firstImg = i.mediumImageUrls[0];
-        imageUrl = typeof firstImg === "string" ? firstImg : firstImg.imageUrl;
+      if (i.mediumImageUrls?.[0]) {
+        imageUrl = typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl;
       }
-
       return {
         title: i.itemName,
         price: i.itemPrice,
@@ -82,9 +60,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(items);
-
   } catch (error) {
-    console.error("致命的エラー:", error);
     return NextResponse.json([]);
   }
 }
