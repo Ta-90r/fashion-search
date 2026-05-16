@@ -13,21 +13,19 @@ export async function POST(req: NextRequest) {
     let genreId = ""; 
     const k = keyword || "";
     
-    // ジャンルIDを強力に固定（楽天の最新ID）
+    // ジャンル固定（レディースファッションのIDを最優先）
     if (k.match(/ワンピース|ワンピ|ドレス/)) genreId = "501911";
     else if (k.match(/トップス|シャツ|ブラウス/)) genreId = "100371";
     else if (k.match(/スカート/)) genreId = "501912";
     else if (k.match(/パンツ|ズボン/)) genreId = "501913";
-    else if (k.match(/バッグ|カバン/)) genreId = "101070";
-    else if (k.match(/靴|サンダル|スニーカー/)) genreId = "101105";
 
-    const baseUrl = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
-    const url = new URL(baseUrl);
+    const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // 検索語が「ワンピース」なら「ワンピース プチプラ」として検索
-    url.searchParams.append("keyword", `${k} プチプラ`);
+    // 【精度改善】ノイズを消すための検索ワード構成
+    // 「レディース」を強制付与し、かつマイナス検索（-メンズ -キッズ）でヒートテック等の混入を防ぐ
+    url.searchParams.append("keyword", `${k} レディース プチプラ -メンズ -キッズ -子供`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
