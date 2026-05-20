@@ -13,24 +13,34 @@ export async function POST(req: NextRequest) {
     let genreId = ""; 
     const k = keyword || "";
     
-    // ジャンル固定（レディースファッションのIDを最優先）
-    if (k.match(/ワンピース|ワンピ|ドレス/)) genreId = "501911";
-    else if (k.match(/トップス|シャツ|ブラウス/)) genreId = "100371";
-    else if (k.match(/スカート/)) genreId = "501912";
-    else if (k.match(/パンツ|ズボン/)) genreId = "501913";
+    // 【最重要】ジャンルIDの割り振りをさらに厳格化
+    if (k.match(/ワンピース|ワンピ|ドレス/)) {
+      genreId = "501911"; // レディースワンピースジャンルに完全固定
+    } else if (k.match(/トップス|シャツ|ブラウス|カットソー/)) {
+      genreId = "100371"; 
+    } else if (k.match(/スカート/)) {
+      genreId = "501912"; 
+    } else if (k.match(/パンツ|ズボン/)) {
+      genreId = "501913"; 
+    }
 
     const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // 【精度改善】ノイズを消すための検索ワード構成
-    // 「レディース」を強制付与し、かつマイナス検索（-メンズ -キッズ）でヒートテック等の混入を防ぐ
-    url.searchParams.append("keyword", `${k} レディース プチプラ -メンズ -キッズ -子供`);
+    // 【SHOPLIST・GRL特化】
+    // 検索ワードにブランド名を明示的に含め、かつメンズ・小物を徹底除外
+    // ジャンルID（501911など）が指定されていれば、楽天側で帽子や靴下は物理的にヒットしなくなります
+    url.searchParams.append("keyword", `${k} SHOPLIST GRL プチプラ レディース -メンズ -キッズ -ソックス -帽子 -マフラー`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
-    if (genreId) url.searchParams.append("genreId", genreId);
-    if (maxPrice) url.searchParams.append("maxPrice", maxPrice.toString());
+    if (genreId) {
+      url.searchParams.append("genreId", genreId);
+    }
+    if (maxPrice) {
+      url.searchParams.append("maxPrice", maxPrice.toString());
+    }
 
     const res = await fetch(url.toString(), {
       method: "GET",
@@ -53,7 +63,7 @@ export async function POST(req: NextRequest) {
         title: i.itemName,
         price: i.itemPrice,
         dupe_image: imageUrl ? imageUrl.split("?")[0] : "", 
-        link: i.itemUrl,
+        link: i.itemUrl, // 後ほどアクセストレードのリンクに置換するベースとなります
       };
     });
 
