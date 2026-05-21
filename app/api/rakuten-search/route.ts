@@ -13,25 +13,23 @@ export async function POST(req: NextRequest) {
     let genreId = ""; 
     const k = keyword || "";
     
-    // 【最重要】ジャンルIDの割り振りをさらに厳格化
+    // 【自動ジャンル判定】AIが判断した言葉に応じて、楽天の「レディース専用カテゴリ部屋」を自動選択
     if (k.match(/ワンピース|ワンピ|ドレス/)) {
-      genreId = "501911"; // レディースワンピースジャンルに完全固定
-    } else if (k.match(/トップス|シャツ|ブラウス|カットソー/)) {
-      genreId = "100371"; 
+      genreId = "501911"; // レディースワンピース
+    } else if (k.match(/トップス|シャツ|ブラウス|カットソー|ニット|Tシャツ/)) {
+      genreId = "100371"; // レディーストップス
     } else if (k.match(/スカート/)) {
-      genreId = "501912"; 
-    } else if (k.match(/パンツ|ズボン/)) {
-      genreId = "501913"; 
+      genreId = "501912"; // レディーススカート
+    } else if (k.match(/パンツ|ズボン|デニム|ボトムス/)) {
+      genreId = "501913"; // レディースパンツ
     }
 
     const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // 【SHOPLIST・GRL特化】
-    // 検索ワードにブランド名を明示的に含め、かつメンズ・小物を徹底除外
-    // ジャンルID（501911など）が指定されていれば、楽天側で帽子や靴下は物理的にヒットしなくなります
-    url.searchParams.append("keyword", `${k} SHOPLIST GRL プチプラ レディース -メンズ -キッズ -ソックス -帽子 -マフラー`);
+    // ジャンルID（部屋）を固定しつつ、キーワードを流すことで「帽子や靴下」が物理的に出ないようにする
+    url.searchParams.append("keyword", `${k} SHOPLIST GRL プチプラ レディース -メンズ -キッズ`);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
@@ -63,7 +61,7 @@ export async function POST(req: NextRequest) {
         title: i.itemName,
         price: i.itemPrice,
         dupe_image: imageUrl ? imageUrl.split("?")[0] : "", 
-        link: i.itemUrl, // 後ほどアクセストレードのリンクに置換するベースとなります
+        link: i.itemUrl,
       };
     });
 

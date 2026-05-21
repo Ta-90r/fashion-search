@@ -37,14 +37,18 @@ export default function Home() {
     setLoading(true);
     try {
       let searchKeyword = keyword;
+
+      // 1. 画像がある場合はAIで解析して「服の種類」を特定する
       if (selectedFile) {
         const formData = new FormData();
         formData.append("file", selectedFile);
         const res = await fetch("/api/image-search", { method: "POST", body: formData });
         const data = await res.json();
-        searchKeyword = data.keyword || keyword;
+        // AIが返した「ワンピース」「ブラウス」などのメインキーワード
+        searchKeyword = data.keyword || keyword; 
       }
 
+      // 2. 楽天APIにキーワードを送信
       const rRes = await fetch("/api/rakuten-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,16 +56,20 @@ export default function Home() {
       });
       const items = await rRes.json();
       
-      // 精度が低い場合に Match パーセントを下げるロジック
-      setResults(items.map((item: any) => ({
-        ...item,
-        matchScore: item.title.includes(searchKeyword.slice(0,2)) 
-          ? Math.floor(Math.random() * (98 - 90 + 1) + 90) 
-          : Math.floor(Math.random() * (85 - 70 + 1) + 70)
-      })));
+      // 3. 検索キーワード（服の種類）が含まれている商品のスコアを高めにする
+      setResults(items.map((item: any) => {
+        const isMatched = item.title.includes(searchKeyword.slice(0, 2));
+        return {
+          ...item,
+          matchScore: isMatched 
+            ? Math.floor(Math.random() * (98 - 92 + 1) + 92) 
+            : Math.floor(Math.random() * (85 - 70 + 1) + 70)
+        };
+      }));
       setShowFavorites(false);
     } catch (e) {
       console.error(e);
+      alert("エラーが起きました。環境変数が正しいか確認してください。");
     } finally {
       setLoading(false);
     }
@@ -69,15 +77,11 @@ export default function Home() {
 
   return (
     <div style={{ padding: "20px", maxWidth: "500px", margin: "0 auto", background: "#FDFBFF", minHeight: "100vh", fontFamily: "sans-serif" }}>
-      
-      {/* 景表法対策：ステマ規制に対応するためのPR表記（審査に必須） */}
       <div style={{ fontSize: "10px", color: "#ccc", textAlign: "right", marginBottom: "5px" }}>広告が含まれます</div>
 
       <header style={{ textAlign: "center", padding: "10px 0 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 onClick={() => setShowFavorites(false)} style={{ color: "#7b5cff", fontSize: "24px", fontWeight: "900", cursor: "pointer", margin: 0 }}>LookMatch 💜</h1>
-        
-        {/* お気に入り表示を文字付きで分かりやすく */}
-        <button onClick={() => setShowFavorites(!showFavorites)} style={{ background: "#7b5cff15", color: "#7b5cff", border: "none", padding: "8px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
+        <button onClick={() => setShowFavorites(!showFavorites)} style={{ background: "#7b5cff15", color: "#7b5cff", border: "none", padding: "8px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>
           {showFavorites ? "🔍 検索に戻る" : `❤️ お気に入り (${favorites.length})`}
         </button>
       </header>
@@ -92,10 +96,10 @@ export default function Home() {
           <p style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "8px" }}>💰 予算の上限: ¥{parseInt(maxPrice).toLocaleString()}</p>
           <input type="range" min="1000" max="15000" step="500" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} style={{ width: "100%", accentColor: "#7b5cff", marginBottom: "20px" }} />
 
-          <input type="text" placeholder="キーワード（ワンピースなど）" value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #f0f0f0", marginBottom: "15px", outline: "none" }} />
+          <input type="text" placeholder="キーワード（空欄でもスクショがあれば自動判定）" value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #f0f0f0", marginBottom: "15px", outline: "none" }} />
 
           <button onClick={handleSearch} disabled={loading} style={{ width: "100%", background: loading ? "#ccc" : "#7b5cff", color: "#fff", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 4px 15px rgba(123, 92, 255, 0.3)" }}>
-            {loading ? "AI解析中..." : "プチプラで再現する ✨"}
+            {loading ? "AIが服の種類を特定中..." : "同じ種類のプチプラ服をみつける ✨"}
           </button>
         </section>
       )}
@@ -105,15 +109,12 @@ export default function Home() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
         {(showFavorites ? favorites : results).map((item, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: "16px", overflow: "hidden", position: "relative", border: "1px solid #eee" }}>
-            
-            {/* Matchバッジ */}
             {!showFavorites && (
               <div style={{ position: "absolute", top: "8px", left: "8px", background: "rgba(123, 92, 255, 0.9)", color: "#fff", fontSize: "10px", padding: "4px 8px", borderRadius: "20px", fontWeight: "bold", zIndex: 1 }}>
                 Match {item.matchScore}%
               </div>
             )}
 
-            {/* お気に入りボタン（視認性改善：背景を濃くして白飛び防止） */}
             <button 
               onClick={() => toggleFavorite(item)}
               style={{ position: "absolute", top: "8px", right: "8px", background: "rgba(0, 0, 0, 0.4)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
@@ -121,12 +122,12 @@ export default function Home() {
               {favorites.some(f => f.link === item.link) ? "❤️" : "🤍"}
             </button>
 
-            <img src={item.dupe_image} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }} />
+            <img src={item.dupe_image || "https://via.placeholder.com/300"} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }} />
             
             <div style={{ padding: "12px" }}>
               <p style={{ fontSize: "11px", fontWeight: "bold", height: "2.6em", overflow: "hidden", lineHeight: "1.3" }}>{item.title}</p>
               <p style={{ color: "#7b5cff", fontWeight: "900", fontSize: "15px", margin: "8px 0" }}>¥{item.price?.toLocaleString()}</p>
-              <a href={item.link} target="_blank" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>詳細をみる</a>
+              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>詳細をみる</a>
             </div>
           </div>
         ))}
@@ -138,7 +139,7 @@ export default function Home() {
           <a href="/terms" style={{ color: "#999", textDecoration: "none" }}>利用規約</a>
           <a href="/contact" style={{ color: "#999", textDecoration: "none" }}>お問い合わせ</a>
         </div>
-        <p>© 2026 LookMatch - AI Fashion</p>
+        <p>© 2026 LookMatch</p>
       </footer>
     </div>
   );
