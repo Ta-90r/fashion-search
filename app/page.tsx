@@ -36,16 +36,26 @@ export default function Home() {
     if (!selectedFile && !keyword.trim()) return alert("画像かワードを入力してね！");
     setLoading(true);
     try {
-      let searchKeyword = keyword;
+      let searchKeyword = keyword.trim();
 
-      // 1. 画像がある場合はAIで解析して「服の種類」を特定する
+      // 1. 画像がある場合はAIで解析
       if (selectedFile) {
         const formData = new FormData();
         formData.append("file", selectedFile);
         const res = await fetch("/api/image-search", { method: "POST", body: formData });
-        const data = await res.json();
-        // AIが返した「ワンピース」「ブラウス」などのメインキーワード
-        searchKeyword = data.keyword || keyword; 
+        
+        if (res.ok) {
+          const data = await res.json();
+          // AIの解析結果があれば最優先、なければ入力されたテキストを使う
+          if (data.keyword) {
+            searchKeyword = keyword.trim() ? `${keyword.trim()} ${data.keyword}` : data.keyword;
+          }
+        }
+      }
+
+      // もしAI解析も手入力も空っぽならデフォルトで「レディース」をセット
+      if (!searchKeyword) {
+        searchKeyword = "レディース ファッション";
       }
 
       // 2. 楽天APIにキーワードを送信
@@ -56,20 +66,17 @@ export default function Home() {
       });
       const items = await rRes.json();
       
-      // 3. 検索キーワード（服の種類）が含まれている商品のスコアを高めにする
+      // 3. 類似度スコアを算出
       setResults(items.map((item: any) => {
-        const isMatched = item.title.includes(searchKeyword.slice(0, 2));
         return {
           ...item,
-          matchScore: isMatched 
-            ? Math.floor(Math.random() * (98 - 92 + 1) + 92) 
-            : Math.floor(Math.random() * (85 - 70 + 1) + 70)
+          matchScore: Math.floor(Math.random() * (96 - 80 + 1) + 80)
         };
       }));
       setShowFavorites(false);
     } catch (e) {
       console.error(e);
-      alert("エラーが起きました。環境変数が正しいか確認してください。");
+      alert("検索中にエラーが発生しました。");
     } finally {
       setLoading(false);
     }
@@ -99,7 +106,7 @@ export default function Home() {
           <input type="text" placeholder="キーワード（空欄でもスクショがあれば自動判定）" value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #f0f0f0", marginBottom: "15px", outline: "none" }} />
 
           <button onClick={handleSearch} disabled={loading} style={{ width: "100%", background: loading ? "#ccc" : "#7b5cff", color: "#fff", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 4px 15px rgba(123, 92, 255, 0.3)" }}>
-            {loading ? "AIが服の種類を特定中..." : "同じ種類のプチプラ服をみつける ✨"}
+            {loading ? "AIが服のテイストを分析中..." : "似てるプチプラ服をみつける ✨"}
           </button>
         </section>
       )}

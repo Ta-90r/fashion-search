@@ -10,32 +10,22 @@ export async function POST(req: NextRequest) {
 
     if (!APP_ID || !ACCESS_KEY) return NextResponse.json([]);
 
-    let genreId = ""; 
-    const k = keyword || "";
-    
-    // 【自動ジャンル判定】AIが判断した言葉に応じて、楽天の「レディース専用カテゴリ部屋」を自動選択
-    if (k.match(/ワンピース|ワンピ|ドレス/)) {
-      genreId = "501911"; // レディースワンピース
-    } else if (k.match(/トップス|シャツ|ブラウス|カットソー|ニット|Tシャツ/)) {
-      genreId = "100371"; // レディーストップス
-    } else if (k.match(/スカート/)) {
-      genreId = "501912"; // レディーススカート
-    } else if (k.match(/パンツ|ズボン|デニム|ボトムス/)) {
-      genreId = "501913"; // レディースパンツ
-    }
-
     const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // ジャンルID（部屋）を固定しつつ、キーワードを流すことで「帽子や靴下」が物理的に出ないようにする
-    url.searchParams.append("keyword", `${k} SHOPLIST GRL プチプラ レディース -メンズ -キッズ`);
+    // 【決定版フィルター】
+    // ジャンルは広めに「レディースファッション全体(100371)」をベースにします。
+    // その上で、絶対に並んでほしくない異物を「マイナス検索（-）」で極限まで削ぎ落とします。
+    url.searchParams.append("genreId", "100371"); 
+    
+    // 帽子、靴下、下着、浴衣、メンズ、キッズなどを徹底除外。これで「洋服（アウター・トップス・ワンピ・パンツ・スカート）」だけが残ります。
+    const cleanKeyword = `${keyword || ""} SHOPLIST GRL プチプラ -メンズ -キッズ -子供 -ソックス -靴下 -帽子 -キャップ -ハット -マフラー -手袋 -水着 -浴衣 -下着 -ブラジャー -ショーツ -タイツ -ストッキング`;
+    
+    url.searchParams.append("keyword", cleanKeyword);
     url.searchParams.append("hits", "20");
     url.searchParams.append("formatVersion", "2");
 
-    if (genreId) {
-      url.searchParams.append("genreId", genreId);
-    }
     if (maxPrice) {
       url.searchParams.append("maxPrice", maxPrice.toString());
     }
