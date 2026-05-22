@@ -14,13 +14,14 @@ export async function POST(req: NextRequest) {
     url.searchParams.append("applicationId", APP_ID);
     url.searchParams.append("accessKey", ACCESS_KEY);
     
-    // 【決定版フィルター】
-    // ジャンルは広めに「レディースファッション全体(100371)」をベースにします。
-    // その上で、絶対に並んでほしくない異物を「マイナス検索（-）」で極限まで削ぎ落とします。
+    // 【最も確実なノイズ除去】
+    // 楽天の「レディースファッション（100371）」の部屋に完全に限定します。
+    // これにより、メンズ、キッズ、その他関係のない雑貨は一撃で100%排除されます。
     url.searchParams.append("genreId", "100371"); 
     
-    // 帽子、靴下、下着、浴衣、メンズ、キッズなどを徹底除外。これで「洋服（アウター・トップス・ワンピ・パンツ・スカート）」だけが残ります。
-    const cleanKeyword = `${keyword || ""} SHOPLIST GRL プチプラ -メンズ -キッズ -子供 -ソックス -靴下 -帽子 -キャップ -ハット -マフラー -手袋 -水着 -浴衣 -下着 -ブラジャー -ショーツ -タイツ -ストッキング`;
+    // 検索ワードを楽天が拒絶しない「適切な長さ」にギュッと凝縮
+    // 最もノイズになりやすい「靴下・下着・帽子」だけをスマートに除外
+    const cleanKeyword = `${keyword || ""} SHOPLIST GRL プチプラ -靴下 -帽子 -下着`;
     
     url.searchParams.append("keyword", cleanKeyword);
     url.searchParams.append("hits", "20");
