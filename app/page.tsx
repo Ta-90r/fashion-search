@@ -2,8 +2,6 @@
 import { useState, useEffect } from "react";
 
 export default function Home() {
-  const [keyword, setKeyword] = useState("");
-  const [maxPrice, setMaxPrice] = useState("5000");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,58 +23,33 @@ export default function Home() {
   };
 
   const toggleFavorite = (product: any) => {
-    let updated = favorites.some(f => f.link === product.link)
-      ? favorites.filter(f => f.link !== product.link)
+    let updated = favorites.some(f => f.id === product.id)
+      ? favorites.filter(f => f.id !== product.id)
       : [...favorites, product];
     setFavorites(updated);
     localStorage.setItem("lookmatch_favs", JSON.stringify(updated));
   };
 
   const handleSearch = async () => {
-    if (!selectedFile && !keyword.trim()) return alert("画像かワードを入力してね！");
+    if (!selectedFile) return alert("探したいお洋服のスクショを選んでね！👗");
     setLoading(true);
     try {
-      let searchKeyword = keyword.trim();
+      const formData = new FormData();
+      formData.append("file", selectedFile);
 
-      // 1. 画像がある場合はAIで解析
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        const res = await fetch("/api/image-search", { method: "POST", body: formData });
-        
-        if (res.ok) {
-          const data = await res.json();
-          // AIの解析結果があれば最優先、なければ入力されたテキストを使う
-          if (data.keyword) {
-            searchKeyword = keyword.trim() ? `${keyword.trim()} ${data.keyword}` : data.keyword;
-          }
-        }
-      }
-
-      // もしAI解析も手入力も空っぽならデフォルトで「レディース」をセット
-      if (!searchKeyword) {
-        searchKeyword = "レディース ファッション";
-      }
-
-      // 2. 楽天APIにキーワードを送信
-      const rRes = await fetch("/api/rakuten-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: searchKeyword, maxPrice: parseInt(maxPrice) }),
-      });
-      const items = await rRes.json();
+      // 直接AI画像解析APIを叩く（ここにすべてのロジックが集約されました）
+      const res = await fetch("/api/image-search", { method: "POST", body: formData });
       
-      // 3. 類似度スコアを算出
-      setResults(items.map((item: any) => {
-        return {
-          ...item,
-          matchScore: Math.floor(Math.random() * (96 - 80 + 1) + 80)
-        };
-      }));
-      setShowFavorites(false);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data);
+        setShowFavorites(false);
+      } else {
+        alert("うまく解析できなかったよ。もう一度試してみてね！");
+      }
     } catch (e) {
       console.error(e);
-      alert("検索中にエラーが発生しました。");
+      alert("エラーが発生しました。");
     } finally {
       setLoading(false);
     }
@@ -95,23 +68,26 @@ export default function Home() {
 
       {!showFavorites && (
         <section style={{ background: "#fff", borderRadius: "24px", padding: "20px", boxShadow: "0 10px 30px rgba(123, 92, 255, 0.08)", marginBottom: "25px" }}>
+          <p style={{ textTransform: "uppercase", fontSize: "11px", color: "#7b5cff", fontWeight: "bold", textAlign: "center", margin: "0 0 10px 0" }}>snidel / Darich のスクショ対応 ✨</p>
+          
           <div style={{ marginBottom: "20px", textAlign: "center" }}>
-            {previewUrl && <img src={previewUrl} style={{ width: "120px", height: "120px", objectFit: "cover", borderRadius: "12px", marginBottom: "10px", border: "2px solid #7b5cff" }} />}
+            {previewUrl ? (
+              <img src={previewUrl} style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "12px", marginBottom: "10px", border: "2px solid #7b5cff" }} />
+            ) : (
+              <div style={{ height: "140px", border: "2px dashed #e2dfff", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#b5aeff", fontSize: "13px", background: "#fcfbfe" }}>
+                📸 ここに推し服のスクショをアップロード
+              </div>
+            )}
             <input type="file" accept="image/*" onChange={onFileChange} style={{ display: "block", margin: "10px auto", fontSize: "12px" }} />
           </div>
 
-          <p style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "8px" }}>💰 予算の上限: ¥{parseInt(maxPrice).toLocaleString()}</p>
-          <input type="range" min="1000" max="15000" step="500" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} style={{ width: "100%", accentColor: "#7b5cff", marginBottom: "20px" }} />
-
-          <input type="text" placeholder="キーワード（空欄でもスクショがあれば自動判定）" value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #f0f0f0", marginBottom: "15px", outline: "none" }} />
-
           <button onClick={handleSearch} disabled={loading} style={{ width: "100%", background: loading ? "#ccc" : "#7b5cff", color: "#fff", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 4px 15px rgba(123, 92, 255, 0.3)" }}>
-            {loading ? "AIが服のテイストを分析中..." : "似てるプチプラ服をみつける ✨"}
+            {loading ? "AIがSHEINから激似プチプラを厳選中..." : "SHEINで激似ワンピをみつける 💖"}
           </button>
         </section>
       )}
 
-      <h2 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "15px" }}>{showFavorites ? "保存したアイテム" : "見つかったアイテム"}</h2>
+      <h2 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "15px" }}>{showFavorites ? "保存したお気に入り" : "AIが見つけた激似アイテム"}</h2>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
         {(showFavorites ? favorites : results).map((item, i) => (
@@ -126,28 +102,25 @@ export default function Home() {
               onClick={() => toggleFavorite(item)}
               style={{ position: "absolute", top: "8px", right: "8px", background: "rgba(0, 0, 0, 0.4)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
             >
-              {favorites.some(f => f.link === item.link) ? "❤️" : "🤍"}
+              {favorites.some(f => f.id === item.id) ? "❤️" : "🤍"}
             </button>
 
-            <img src={item.dupe_image || "https://via.placeholder.com/300"} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }} />
+            <img src={item.dupe_image} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }} />
             
             <div style={{ padding: "12px" }}>
               <p style={{ fontSize: "11px", fontWeight: "bold", height: "2.6em", overflow: "hidden", lineHeight: "1.3" }}>{item.title}</p>
               <p style={{ color: "#7b5cff", fontWeight: "900", fontSize: "15px", margin: "8px 0" }}>¥{item.price?.toLocaleString()}</p>
-              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>詳細をみる</a>
+              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>SHEINでみる</a>
             </div>
           </div>
         ))}
       </div>
 
-      <footer style={{ marginTop: "60px", padding: "40px 20px", borderTop: "1px solid #eee", textAlign: "center", fontSize: "11px", color: "#999" }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: "15px", marginBottom: "20px" }}>
-          <a href="/blog" style={{ color: "#7b5cff", textDecoration: "none", fontWeight: "bold" }}>おすすめコーデ集</a>
-          <a href="/terms" style={{ color: "#999", textDecoration: "none" }}>利用規約</a>
-          <a href="/contact" style={{ color: "#999", textDecoration: "none" }}>お問い合わせ</a>
+      {(showFavorites ? favorites : results).length === 0 && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#aaa", fontSize: "13px" }}>
+          {showFavorites ? "お気に入りはまだありません 🌷" : "スクショをアップすると、ここに激似のSHEINワンピが並ぶよ 👗"}
         </div>
-        <p>© 2026 LookMatch</p>
-      </footer>
+      )}
     </div>
   );
 }
