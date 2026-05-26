@@ -33,17 +33,21 @@ export default function Home() {
   const handleSearch = async () => {
     if (!selectedFile) return alert("探したいお洋服のスクショを選んでね！👗");
     setLoading(true);
+    setResults([]); // 前回の結果をクリア
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      // 直接AI画像解析APIを叩く（ここにすべてのロジックが集約されました）
       const res = await fetch("/api/image-search", { method: "POST", body: formData });
       
       if (res.ok) {
         const data = await res.json();
-        setResults(data);
-        setShowFavorites(false);
+        if (Array.isArray(data) && data.length > 0) {
+          setResults(data);
+          setShowFavorites(false);
+        } else {
+          alert("クローゼットの中から似ている服が見つかりませんでした。別のスクショを試すか、アイテムを増やしてみてね！");
+        }
       } else {
         alert("うまく解析できなかったよ。もう一度試してみてね！");
       }
@@ -68,7 +72,9 @@ export default function Home() {
 
       {!showFavorites && (
         <section style={{ background: "#fff", borderRadius: "24px", padding: "20px", boxShadow: "0 10px 30px rgba(123, 92, 255, 0.08)", marginBottom: "25px" }}>
-          <p style={{ textTransform: "uppercase", fontSize: "11px", color: "#7b5cff", fontWeight: "bold", textAlign: "center", margin: "0 0 10px 0" }}>snidel / Darich のスクショ対応 ✨</p>
+          <p style={{ fontSize: "12px", color: "#666", textAlign: "center", margin: "0 0 15px 0", fontWeight: "bold" }}>
+            憧れの服のスクショから、激似のプチプラ服をAIが見つけます ✨
+          </p>
           
           <div style={{ marginBottom: "20px", textAlign: "center" }}>
             {previewUrl ? (
@@ -82,7 +88,7 @@ export default function Home() {
           </div>
 
           <button onClick={handleSearch} disabled={loading} style={{ width: "100%", background: loading ? "#ccc" : "#7b5cff", color: "#fff", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 4px 15px rgba(123, 92, 255, 0.3)" }}>
-            {loading ? "AIがSHEINから激似プチプラを厳選中..." : "SHEINで激似ワンピをみつける 💖"}
+            {loading ? "AIがプチプラ服を厳選中..." : "激似プチプラ服をみつける 💖"}
           </button>
         </section>
       )}
@@ -108,9 +114,9 @@ export default function Home() {
             <img src={item.dupe_image} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }} />
             
             <div style={{ padding: "12px" }}>
-              <p style={{ fontSize: "11px", fontWeight: "bold", height: "2.6em", overflow: "hidden", lineHeight: "1.3" }}>{item.title}</p>
+              <p style={{ fontSize: "11px", fontWeight: "bold", height: "2.6em", overflow: "hidden", lineHeight: "1.3", margin: 0 }}>{item.title}</p>
               <p style={{ color: "#7b5cff", fontWeight: "900", fontSize: "15px", margin: "8px 0" }}>¥{item.price?.toLocaleString()}</p>
-              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>SHEINでみる</a>
+              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#333", color: "#fff", textAlign: "center", padding: "10px", borderRadius: "10px", fontSize: "11px", textDecoration: "none", fontWeight: "bold" }}>ショップでみる</a>
             </div>
           </div>
         ))}
@@ -118,7 +124,7 @@ export default function Home() {
 
       {(showFavorites ? favorites : results).length === 0 && (
         <div style={{ textAlign: "center", padding: "40px 0", color: "#aaa", fontSize: "13px" }}>
-          {showFavorites ? "お気に入りはまだありません 🌷" : "スクショをアップすると、ここに激似のSHEINワンピが並ぶよ 👗"}
+          {showFavorites ? "お気に入りはまだありません 🌷" : "スクショをアップすると、ここに激似のプチプラ服が並ぶよ 👗"}
         </div>
       )}
     </div>
