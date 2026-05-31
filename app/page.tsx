@@ -7,7 +7,6 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
-  // 条件設定用の状態（ステート）
   const [category, setCategory] = useState("");
   const [styleTone, setStyleTone] = useState("");
 
@@ -27,6 +26,12 @@ export default function Home() {
     }
   };
 
+  // 選択クリア機能
+  const clearSelection = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+  };
+
   const toggleFavorite = (product: any) => {
     let updated = favorites.some(f => f.id === product.id)
       ? favorites.filter(f => f.id !== product.id)
@@ -36,12 +41,18 @@ export default function Home() {
   };
 
   const handleSearch = async () => {
-    if (!selectedFile) return alert("探したいお洋服のスクショを選んでね！👗");
+    // 💡 修正点：スクショがなくても、カテゴリかスタイルが選ばれていれば検索できるようにしました！
+    if (!selectedFile && !category && !styleTone) {
+      return alert("スクショを選ぶか、カテゴリ・スタイルを指定してね！👗");
+    }
+    
     setLoading(true);
     setResults([]);
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      }
       formData.append("category", category);
       formData.append("styleTone", styleTone);
 
@@ -53,10 +64,10 @@ export default function Home() {
           setResults(data);
           setShowFavorites(false);
         } else {
-          alert("選んだ条件に合う激似プチプラ服が見つかりませんでした。別の組み合わせやスクショを試してね！");
+          alert("条件に合うお洋服がクローゼットにありませんでした。他の条件を試してね！");
         }
       } else {
-        alert("うまく解析できなかったよ。もう一度試してみてね！");
+        alert("うまく検索できなかったよ。もう一度試してみてね！");
       }
     } catch (e) {
       console.error(e);
@@ -67,10 +78,8 @@ export default function Home() {
   };
 
   return (
-    // 🛠️ pb を paddingBottom に修正してエラー解決！
     <div style={{ background: "#F8F9FD", minHeight: "100vh", fontFamily: "sans-serif", color: "#333", paddingBottom: "40px" }}>
       
-      {/* タップした時にボタンの色を少し暗くするためのスタイル設定（エラー回避用の安全な技です） */}
       <style dangerouslySetInnerHTML={{__html: `
         .search-btn:active { background-color: #6644ff !important; }
         .shop-btn:active { background-color: #444 !important; }
@@ -101,12 +110,11 @@ export default function Home() {
                 <span style={{ marginRight: "6px" }}>📂</span> カテゴリ・スタイルで絞り込む
               </h2>
               
-              {/* 服の種類 */}
               <div style={{ marginBottom: "12px" }}>
                 <select 
                   value={category} 
                   onChange={(e) => setCategory(e.target.value)}
-                  style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #DCE2F5", background: "#F9FAFE", fontSize: "14px", color: "#333", outline: "none", appearance: "none", WebkitAppearance: "none" }}
+                  style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #DCE2F5", background: "#F9FAFE", fontSize: "14px", color: "#333", outline: "none" }}
                 >
                   <option value="">👗 すべての種類（ワンピース、トップス等）</option>
                   <option value="ワンピース">👗 ワンピース・セットアップ</option>
@@ -116,12 +124,11 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* 雰囲気・系統 */}
               <div>
                 <select 
                   value={styleTone} 
                   onChange={(e) => setStyleTone(e.target.value)}
-                  style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #DCE2F5", background: "#F9FAFE", fontSize: "14px", color: "#333", outline: "none", appearance: "none", WebkitAppearance: "none" }}
+                  style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "1px solid #DCE2F5", background: "#F9FAFE", fontSize: "14px", color: "#333", outline: "none" }}
                 >
                   <option value="">✨ すべてのスタイル（フェミニン、ギャル等）</option>
                   <option value="フェミニン">✨ フェミニン・あざと可愛い（snidel風）</option>
@@ -135,11 +142,14 @@ export default function Home() {
             {/* 📸 3. スクショアップロード ＆ 検索実行エリア */}
             <section style={{ background: "#fff", borderRadius: "20px", padding: "20px", boxShadow: "0 4px 15px rgba(123,92,255,0.03)", border: "1px solid #EBF0FF", marginBottom: "20px" }}>
               <div style={{ textTransform: "uppercase", fontSize: "10px", color: "#7b5cff", fontWeight: "bold", letterSpacing: "1px", marginBottom: "6px" }}>Generated Content Search</div>
-              <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: "0 0 15px 0" }}>探したい服のスクショをUP</h2>
+              <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: "0 0 15px 0" }}>探したい服のスクショをUP（任意）</h2>
 
               <div style={{ border: "2px dashed #DCE2F5", borderRadius: "14px", padding: "20px 10px", textAlign: "center", background: "#FAFBFFA0", marginBottom: "15px", position: "relative" }}>
                 {previewUrl ? (
-                  <img src={previewUrl} style={{ maxHeight: "200px", maxWidth: "100%", objectFit: "contain", borderRadius: "10px" }} />
+                  <div>
+                    <img src={previewUrl} style={{ maxHeight: "200px", maxWidth: "100%", objectFit: "contain", borderRadius: "10px" }} />
+                    <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} style={{ display: "block", margin: "10px auto 0", background: "#ff4a4a", color: "#fff", border: "none", padding: "5px 10px", borderRadius: "6px", fontSize: "11px", cursor: "pointer", position: "relative", zIndex: 10 }}>画像を消す</button>
+                  </div>
                 ) : (
                   <div style={{ padding: "10px 0" }}>
                     <span style={{ fontSize: "32px", display: "block", marginBottom: "5px" }}>📸</span>
@@ -147,17 +157,16 @@ export default function Home() {
                     <span style={{ color: "#999", fontSize: "11px", marginTop: "4px", display: "block" }}>スクショを選ぶ、またはここにドロップ</span>
                   </div>
                 )}
-                <input type="file" accept="image/*" onChange={onFileChange} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />
+                {!previewUrl && <input type="file" accept="image/*" onChange={onFileChange} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />}
               </div>
 
-              {/* 🛠️ インラインスタイルの active 部分を除去し、className="search-btn" を付与してエラー解決！ */}
               <button 
                 onClick={handleSearch} 
                 disabled={loading} 
                 className="search-btn"
                 style={{ width: "100%", background: loading ? "#ccc" : "#7b5cff", color: "#fff", border: "none", padding: "15px", borderRadius: "12px", fontWeight: "bold", fontSize: "15px", cursor: "pointer", boxShadow: "0 4px 12px rgba(123, 92, 255, 0.2)", transition: "background-color 0.1s" }}
               >
-                {loading ? "AIがプチプラ服を厳選中..." : "激似プチプラ服を見つける 💖"}
+                {loading ? "プチプラクローゼットを検索中..." : selectedFile ? "激似プチプラ服を見つける 💖" : "この条件でカタログを見る ✨"}
               </button>
             </section>
           </>
@@ -165,7 +174,7 @@ export default function Home() {
 
         {/* 検索結果タイトル */}
         <h2 style={{ fontSize: "15px", fontWeight: "bold", marginBottom: "12px", color: "#444" }}>
-          {showFavorites ? "❤️ 保存したお気に入り" : "✨ AIが見つけた激似プチプラアイテム"}
+          {showFavorites ? "❤️ 保存したお気に入り" : "✨ 見つかったプチプラアイテム"}
         </h2>
 
         {/* 🛍️ 4. 商品表示カード */}
@@ -174,7 +183,7 @@ export default function Home() {
             <div key={i} style={{ width: "50%", padding: "6px", boxSizing: "border-box" }}>
               <div style={{ background: "#fff", borderRadius: "14px", overflow: "hidden", position: "relative", border: "1px solid #EBF0FF", boxShadow: "0 2px 6px rgba(0,0,0,0.01)" }}>
                 
-                {!showFavorites && (
+                {!showFavorites && item.matchScore < 100 && (
                   <div style={{ position: "absolute", top: "8px", left: "8px", background: "rgba(123, 92, 255, 0.92)", color: "#fff", fontSize: "10px", padding: "3px 7px", borderRadius: "20px", fontWeight: "bold", zIndex: 1 }}>
                     Match {item.matchScore}%
                   </div>
@@ -201,7 +210,7 @@ export default function Home() {
 
         {(showFavorites ? favorites : results).length === 0 && (
           <div style={{ textAlign: "center", padding: "40px 0", color: "#aaa", fontSize: "12px", background: "#fff", borderRadius: "14px", border: "1px dashed #DCE2F5" }}>
-            {showFavorites ? "お気に入りはまだありません 🌷" : "上の項目を選んでスクショをアップすると、ここに激似お洋服が2列で綺麗に並ぶよ 👗"}
+            {showFavorites ? "お気に入りはまだありません 🌷" : "項目を選んで検索すると、ここに可愛い服が並ぶよ 👗"}
           </div>
         )}
 
